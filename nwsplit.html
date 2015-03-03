@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>nwsplit</title>
+<style>
+* {
+  -webkit-app-region: no-drag;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  background: rgba(0,0,0,1);
+  overflow: hidden;
+  font-family: 'Input Mono', 'Consolas', monospace;
+  color: #FFF;
+}
+.timer {
+  -webkit-app-region: drag;
+  color: white;
+  text-align: right;
+  font-size: 60px;
+  font-weight: bold;
+}
+.timer.on {
+  color: orange;
+}
+.timer.stop {
+  color: orangered;
+}
+.timer.paused {
+  color: #555;
+}
+.split {
+  text-align: right;
+  padding: 2px;
+  border-top: 1px solid rgba(128,128,128,0.5);
+}
+.diff {
+  color: white;
+  margin-right: 20px;
+}
+.diff.worse {
+  color: firebrick;
+}
+.diff.better {
+  color: limegreen;
+}
+.worse::before {
+  content: '+';
+}
+.better::before {
+  content: '-';
+}
+.name {
+  float: left;
+}
+#bar {
+  opacity: 0;
+}
+#file {
+  display: block;
+  height: 1000px;
+  width: 100%;
+}
+</style>
+</head>
+<body>
+<div id='container'>
+<div id='timer' class='timer'></div>
+<div id='splits' class='splits'></div>
+<div id='bar'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div>
+</div>
+<script src='jquery-2.1.3.min.js'></script>
+<script>
+var gui = require('nw.gui')
+var win = gui.Window.get()
+win.showDevTools()
+var moment = require('moment')
+require('moment-duration-format')
+var inter = 0
+var n = 0
+var time = 0
+var pausetime = 0
+var paused = false
+var pausestart = 0
+var start = 0
+var file = 0
+var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
+var options = (localStorage.options&&JSON.parse(localStorage.options)?JSON.parse(localStorage.options):{precision: 2, format: 'd[d] h:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10})
+console.info('This program was done in two hours for fun. Don\'t expect anything to work.')
+console.info('You can close this window or use it to edit the options in console or the CSS in elements. Simple zooming works with mousewheel. If you break something you might need to remove %localappdata%/nwsplit or equivalent. Here are your "var options":')
+console.info(options)
+console.info('The split key adds new splits automatically, double pressing stop updates splits with new times, double pressing reset clears everything. You can edit split names or drag .lss-files to the empty space under the timer (or click anywhere.) You can also edit split names and times (in seconds) by clicking.')
+if(localStorage.style) {
+  $('style').html(localStorage.style)
+}
+if(localStorage.x) {
+  win.x = localStorage.x
+}
+if(localStorage.y) {
+  win.y = localStorage.y
+}
+if(localStorage.width) {
+  win.width = localStorage.width
+}
+if(localStorage.height) {
+  win.height = localStorage.height
+}
+var split = function() {
+  if(!inter) {
+    if(!time) {
+      start = new Date().getTime()-options.offset
+    }
+    inter = setInterval(updateTime, options.interval)
+    $('.timer').removeClass('stop').addClass('on')
+  } else {
+    addSplit()
+  }
+}
+var addSplit = function() {
+  var split = (new Date().getTime()-start)
+  var name = 'Split '+(1+n)
+  if(splits.length <= n) {
+    splits[n] = { name: name, current: split, best: split }
+    appendSplit(name, time)
+  }
+  splits[n].current = split
+  n++
+}
+var stop = function() {
+  if(inter != 0) {
+    addSplit()
+  } else {
+    for(var i in splits) {
+      if(splits[i].current < splits[i].best) {
+        splits[i].best = splits[i].current
+        $('.time:nth('+i+')').html(moment.duration(splits[i].current).format(options.format, options.precision))
+      }
+    }
+  }
+  clearInterval(inter)
+  $('.timer').removeClass('on paused').addClass('stop')
+  inter = 0
+  paused = false
+  pausetime = 0
+}
+var reset = function() {
+  $('.timer').removeClass('on stop paused')
+  if(time==0) {
+    splits = []
+    $('.splits').html('')
+  }
+  clearInterval(inter)
+  inter = 0
+  n = 0
+  time = 0
+  pausetime = 0
+  paused = false
+  $('.timer').html((options.offset<0?'-':'')+moment.duration(options.offset).format(options.format, options.precision))
+  $('.diff').removeClass('better worse')
+  $('.diff').html('')
+}
+var pause = function() {
+  if(paused) {
+    pausetime = new Date().getTime()-pausestart
+    start += pausetime
+    paused = false
+  } else {
+    pausestart = new Date().getTime()
+    paused = true
+  }
+}
+var updateTime = function() {
+  $('.timer').removeClass('paused')
+  if(paused) {
+    $('.timer').addClass('paused')
+  } else if(inter) {
+    time = new Date().getTime()-start
+  } else {
+    time = options.offset
+  }
+  $('.timer').html((time<0?'-':'')+moment.duration(time).format(options.format, options.precision))
+  if(time > 0 && splits[n]){
+    //$('.time:nth('+n+')').html(moment.duration(time).format(format, 2))
+    $('.diff:nth('+n+')').html(moment.duration(time-splits[n].best).format(options.format, options.precision))
+    if(time > splits[n].best) {
+      $('.diff:nth('+n+')').removeClass('better').addClass('worse')
+    } else {
+      $('.diff:nth('+n+')').removeClass('worse').addClass('better')
+    }
+  }
+}
+var appendSplit = function(myname, mytime) {
+  var id = $('.split').length
+  $('.splits').append('<div class="split" data-id="'+id+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="time" contenteditable="true">'+moment.duration(mytime).format(options.format, options.precision)+'</span></div>')
+}
+$(function() {
+  gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_split,active: function(){split()},failed: function(msg){console.log(msg)}}))
+  gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_stop,active: function(){stop()},failed: function(msg){console.log(msg)}}))
+  gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_reset,active: function(){reset()},failed: function(msg){console.log(msg)}}))
+  gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_pause,active: function(){pause()},failed: function(msg){console.log(msg)}}))
+  $(window).keydown(function(e) {
+    if(e.which == options.local_split) {
+      e.preventDefault()
+      split()
+    } else if(e.which == options.local_stop) {
+      e.preventDefault()
+      stop()
+    } else if(e.which == options.local_reset) {
+      e.preventDefault()
+      reset()
+    } else if(e.which == options.local_pause) {
+      e.preventDefault()
+      pause()
+    }
+  })
+  $('.timer').html((options.offset<0?'-':'')+moment.duration(options.offset).format(options.format, options.precision))
+  for(var i in splits) {
+    appendSplit(splits[i].name, splits[i].best)
+  }
+  $('#container').on('click', '.split', function(e) {
+    e.stopPropagation()
+    $(this).find('.name').focus()
+  })
+  $('#container').on('click', '.time', function(e) {
+    e.stopPropagation()
+    $(this).find('.time').focus()
+  })
+  $('body').dblclick(function(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    $('#file').click()
+  })
+  $('#file').on('change', function() {
+    var reader = new FileReader()
+    reader.onloadend = function() {
+      var reg = false
+      var multi = false
+      var data = ''
+      if($('#file')[0].files[0].name.match(/\.lss$/)) {
+        reg = /<Name>([^<]*).*?<RealTime>([^<]*)</g
+        data = reader.result.replace(/(\r\n|\n|\r)/gm,'')
+      } else if($('#file')[0].files[0].name.match(/\.wsplit$/)) {
+        reg = /^([^,]*),0,([^,]*),.*?$/gm
+        multi = 1000
+        data = reader.result
+      }
+      if(!reg) {
+        $('#file')[0].files.clear()
+        return
+      }
+      splits = []
+      $('.splits').html('')
+      while(found = reg.exec(data)) {
+        if(multi) {
+          found[2] = multi*found[2]
+        }
+        var newtime = moment.duration(found[2])
+        var newname = String(found[1])
+        splits.push({name: newname, current: 1*newtime, best: 1*newtime})
+        appendSplit(newname, newtime)
+      }
+      $('#file')[0].files.clear()
+    }
+    reader.readAsText(this.files[0])
+  })
+  $('#container').on('focus', '.time', function(e) {
+    var id = $(this).parents('.split').data('id')
+    var val = splits[id].best/1000
+    $(this).html(val)
+  })
+  $('#container').on('blur', '.time', function(e) {
+    var id = $(this).parents('.split').data('id')
+    var val = 1000*$(this).html()
+    splits[id].best = val
+    $(this).html(moment.duration(val).format(options.format, options.precision))
+  })
+  $(window).bind('mousewheel', function(e){
+      if(e.originalEvent.wheelDelta /120 > 0) {
+          win.zoomLevel += 0.1
+      }
+      else{
+          win.zoomLevel -= 0.1
+      }
+  });
+  $(window).scroll(function() {
+    $(window).scrollTop(0)
+  })
+  window.ondragover = function(e) { e.preventDefault(); return false };
+  window.ondrop = function(e) { e.preventDefault(); return false };
+  win.on('close', function() {
+    localStorage.splits = JSON.stringify(splits)
+    localStorage.options = JSON.stringify(options)
+    localStorage.style = $('style').html()
+    localStorage.width = win.width
+    localStorage.height = win.height
+    localStorage.x = win.x
+    localStorage.y = win.y
+    win.close(true)
+  })
+})
+</script>
+</body>
+</html>
