@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge'>
 <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'>
 <title>nwsplit</title>
 <link rel='stylesheet' href='css/font-awesome.min.css' type='text/css'>
@@ -305,7 +306,7 @@ var generateWsplit = function() {
     fs.writeFile(title+'.wsplit', data)
   } else {
     var ex = document.createElement('a')
-    ex.setAttribute('href', 'data:text/plain;chraset=utf-8,'+encodeURIComponent(data))
+    ex.setAttribute('href', 'data:text/plain;charset=utf-8,'+encodeURIComponent(data))
     ex.setAttribute('download',title+'.wsplit')
     ex.click()
   }
