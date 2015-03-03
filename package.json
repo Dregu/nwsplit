@@ -1,7 +1,7 @@
 {
   "name": "nwsplit",
   "description": "Cross platform speedrunning timer/splitter made with nw.js",
-  "version": "0.1",
+  "version": "1.0",
   "main": "nwsplit.html",
   "window": {
     "show": true,
@@ -12,7 +12,7 @@
     "always-on-top": true,
     "width": 300,
     "height": 300,
-    "min_width": 200,
-    "min_height": 72
+    "min_width": 100,
+    "min_height": 20
   }
 }
