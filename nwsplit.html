@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'>
 <title>nwsplit</title>
+<link rel='stylesheet' href='css/font-awesome.min.css' type='text/css'>
 <style>
 * {
   -webkit-app-region: no-drag;
@@ -20,12 +21,22 @@ body {
   font-family: 'Input Mono', 'Consolas', monospace;
   color: #FFF;
 }
+#container {
+  position: relative;
+}
+#title {
+  text-align: center;
+  padding: 2px;
+}
 .timer {
   -webkit-app-region: drag;
   color: white;
   text-align: right;
   font-size: 60px;
   font-weight: bold;
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
+  border-bottom: 1px solid rgba(128,128,128,0.05);
+  text-shadow: 2px 2px 5px rgba(0,0,0,1);
 }
 .timer.on {
   color: orange;
@@ -39,10 +50,12 @@ body {
 .split {
   text-align: right;
   padding: 2px;
-  border-top: 1px solid rgba(128,128,128,0.5);
+}
+.split:nth-child(odd) {
+  background: rgba(128,128,128,0.1);
 }
 .split.current {
-  background: rgba(128,128,128,0.3);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#372D1C), to(#26221C), color-stop(.9,#1C1C1C));
 }
 .time {
   min-width: 85px;
@@ -66,7 +79,7 @@ body {
 .name {
   float: left;
 }
-#bar {
+#import {
   opacity: 0;
 }
 #file {
@@ -74,20 +87,46 @@ body {
   height: 1000px;
   width: 100%;
 }
+#bar {
+  cursor: pointer;
+  display: none;
+  white-space: nowrap;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 50px;
+  border-top: 1px solid rgba(128,128,128,0.1);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
+}
+#bar i {
+  height: 50px;
+  width: 25%;
+  text-align: center;
+  line-height: 50px;
+  display: inline-block;
+}
 </style>
 </head>
 <body>
 <div id='container'>
 <div id='timer' class='timer'></div>
+<div id='title' contenteditable='true'>Title</div>
 <div id='splits' class='splits'></div>
-<div id='bar'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div>
+<div id='import'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div>
+<div id='bar'>
+<i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-stop fa-2x' onclick='stop()'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
+</div>
 </div>
 <script src='jquery-2.1.3.min.js'></script>
 <script src='node_modules/moment/min/moment.min.js'></script>
 <script src='node_modules/moment-duration-format/lib/moment-duration-format.js'></script>
 <script>
+var title = (localStorage.title?localStorage.title:'Game title')
+$('#title').html(title)
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
-var options = (localStorage.options&&JSON.parse(localStorage.options)?JSON.parse(localStorage.options):{precision: 2, format: 'd[d] h:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10, autoadd: true})
+var options = (localStorage.options&&JSON.parse(localStorage.options)?JSON.parse(localStorage.options):{precision: 2, format: 'd[d] h:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10, autoadd: true, bar: true})
 if(localStorage.style) {
   $('style').html(localStorage.style)
 }
@@ -100,13 +139,7 @@ if(typeof require !== 'undefined') {
   gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_reset,active: function(){reset()},failed: function(msg){console.log(msg)}}))
   gui.App.registerGlobalHotKey(new gui.Shortcut({key: options.global_pause,active: function(){pause()},failed: function(msg){console.log(msg)}}))
   win.on('close', function() {
-    localStorage.splits = JSON.stringify(splits)
-    localStorage.options = JSON.stringify(options)
-    localStorage.style = $('style').html()
-    localStorage.width = win.width
-    localStorage.height = win.height
-    localStorage.x = win.x
-    localStorage.y = win.y
+    save()
     win.close(true)
   })
   if(localStorage.x) {
@@ -123,6 +156,7 @@ if(typeof require !== 'undefined') {
   }
   var moment = require('moment')
   require('moment-duration-format')
+  var fs = require('fs')
 }
 var inter = 0
 var n = 0
@@ -136,6 +170,18 @@ console.info('This program was done in a few hours for fun. Don\'t expect it to 
 console.info('You can close the devtools or use it to edit the options in console or the CSS in elements. Simple zooming works with mousewheel. If you break something you might need to remove %localappdata%/nwsplit or equivalent. Here are your "var options":')
 console.info(options)
 console.info('Options, CSS and splits are saved to localStorage automatically. The split key adds new splits automatically if options.autoadd is true, or you can add empty splits by mashing stop. Double pressing stop updates splits with new records, double pressing reset clears everything. You can drop .lss/.wsplit files to the empty space under the timer (or click.) You can also edit split names and times (in seconds) by clicking.')
+var save = function() {
+  localStorage.title = title
+  localStorage.splits = JSON.stringify(splits)
+  localStorage.options = JSON.stringify(options)
+  localStorage.style = $('style').html()
+  if(typeof win !== 'undefined') {
+    localStorage.width = win.width
+    localStorage.height = win.height
+    localStorage.x = win.x
+    localStorage.y = win.y
+  }
+}
 var split = function() {
   if(!inter) {
     if(!time) {
@@ -175,7 +221,7 @@ var stop = function() {
   }
   if(splits.length == 0 || $('.split:nth('+n+')').length == 0 || (!options.autoadd && time == options.offset)) {
     addSplit()
-    if((!options.autoadd && time == options.offset)) {
+    if(time == options.offset) {
       n++
     }
   }
@@ -188,6 +234,7 @@ var stop = function() {
   inter = 0
   paused = false
   pausetime = 0
+  save()
 }
 var reset = function() {
   $('.timer').removeClass('on stop paused')
@@ -206,6 +253,7 @@ var reset = function() {
   $('.diff').removeClass('better worse')
   $('.diff').html('')
   $('.split').removeClass('current')
+  save()
 }
 var pause = function() {
   if(paused) {
@@ -247,6 +295,21 @@ var die = function() {
   localStorage.clear()
   win.close(true)
 }
+var generateWsplit = function() {
+  var data = 'Title='+title+'\nAttempts=0\nOffset=0\nSize=200,25\n'
+  for(var i in splits) {
+    data += splits[i].name+',0,'+(splits[i].current/1000)+','+(splits[i].best/1000)+'\n'
+  }
+  data += 'Icons='+Array(splits.length).join('"",')+'""'
+  if(typeof fs !== 'undefined') {
+    fs.writeFile(title+'.wsplit', data)
+  } else {
+    var ex = document.createElement('a')
+    ex.setAttribute('href', 'data:text/plain;chraset=utf-8,'+encodeURIComponent(data))
+    ex.setAttribute('download',title+'.wsplit')
+    ex.click()
+  }
+}
 $(function() {
   $(window).keydown(function(e) {
     if(e.which == options.local_split) {
@@ -275,29 +338,29 @@ $(function() {
     e.stopPropagation()
     $(this).find('.time').focus()
   })
-  $('body').dblclick(function(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    $('#file').click()
-  })
   $('#file').on('change', function() {
     var reader = new FileReader()
     reader.onloadend = function() {
       var reg = false
+      var titlereg = false
       var multi = false
       var data = ''
       if($('#file')[0].files[0].name.match(/\.lss$/)) {
         reg = /<Name>([^<]*).*?<RealTime>([^<]*)</g
         data = reader.result.replace(/(\r\n|\n|\r)/gm,'')
+        titlereg = /<GameName>([^<]*)</gm
       } else if($('#file')[0].files[0].name.match(/\.wsplit$/)) {
         reg = /^([^,]*),0,([^,]*),.*?$/gm
         multi = 1000
         data = reader.result
+        titlereg = /Title=(.*)/gm
       }
       if(!reg) {
         $('#file')[0].files.clear()
         return
       }
+      title = titlereg.exec(data)[1]
+      $('#title').html(title)
       splits = []
       $('.splits').html('')
       while(found = reg.exec(data)) {
@@ -309,6 +372,7 @@ $(function() {
         splits.push({name: newname, current: 1*newtime, best: 1*newtime})
         appendSplit(newname, newtime)
       }
+      save()
       $('#file')[0].files.clear()
     }
     reader.readAsText(this.files[0])
@@ -338,8 +402,30 @@ $(function() {
   $(window).scroll(function() {
     $(window).scrollTop(0)
   })
+  if(options.bar) {
+    $('#bar').show()
+    $('#bar').mousemove(function() {
+      if(!options.bar) {
+        return
+      }
+      if(!('ontouchstart' in document.documentElement) && $(window).height() > 120) {
+        $('#bar').stop().css({opacity: 1}).animate({opacity: 0}, 2000);
+      }
+    })
+  }
+  $('#title').blur(function() {
+    title = $('#title').html()
+    save()
+  })
+  $('.splits').dblclick(function(e) {
+    e.preventDefault()
+    generateWsplit()
+  })
+  $('#bar').mousedown(function() {
+    return false
+  })
   window.ondragover = function(e) { e.preventDefault(); return false };
-  window.ondrop = function(e) { e.preventDefault(); return false };
+  /*window.ondrop = function(e) { e.preventDefault(); return false };*/
 })
 </script>
 </body>
