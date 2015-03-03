@@ -526,12 +526,12 @@ $(function() {
   $(window).scroll(function() {
     $(window).scrollTop(0)
   })
-  $('#bar').mousemove(function() {
-    if(!('ontouchstart' in document.documentElement) && $(window).height() > 120) {
+  if(!('ontouchstart' in document.documentElement) && $(window).height() > 120) {
+    $('#bar').mousemove(function() {
       $('#bar').stop().css({opacity: 1}).animate({opacity: 0}, 2000);
-    }
-  })
-  $('#bar').stop().css({opacity: 1}).animate({opacity: 0}, 2000);
+    })
+    $('#bar').stop().css({opacity: 1}).animate({opacity: 0}, 2000);
+  }
   $('#title').blur(function() {
     title = $('#title').html()
     save()
