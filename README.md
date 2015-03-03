@@ -7,4 +7,4 @@ Styling can be done live in devtools and options can be changed in the menu. Has
 
 While this is meant for nw.js and should work just fine on any platform, it also somewhat works in chrome, firefox, android or potatoes. Nw.js is the way to go with global hotkeys, menus, borderless windows, transparency...
 
-##### You can test the basic functions in the [live preview](https://cdn.rawgit.com/Dregu/nwsplit/master/nwsplit.html) or download [nw.js](http://nwjs.io) and [nwsplit.nw](https://cdn.rawgit.com/Dregu/nwsplit/master/nwsplit.nw).
+##### You can test the basic functions in the [live preview](https://cdn.rawgit.com/Dregu/nwsplit/master/nwsplit.html) or download [nw.js](http://nwjs.io) and [nwsplit.nw](https://cdn.rawgit.com/Dregu/nwsplit/master/nwsplit.nw) and run it on your pc.
