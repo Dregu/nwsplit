@@ -9,6 +9,8 @@
 <style>
 * {
   -webkit-app-region: no-drag;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -16,10 +18,10 @@
 body {
   width: 100%;
   height: 100%;
-  min-height: 300px;
   background: rgba(0,0,0,1);
   overflow: hidden;
-  font-family: 'Input Mono', 'Consolas', monospace;
+  font-family: 'Input Mono', 'Segoe UI', 'Consolas', monospace;
+  font-weight: bold;
   color: #FFF;
 }
 #container {
@@ -33,9 +35,6 @@ body {
   color: white;
   text-align: right;
   font-size: 60px;
-  height: 70px;
-  line-height: 70px;
-  font-weight: bold;
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
   border-bottom: 1px solid rgba(128,128,128,0.05);
   text-shadow: 2px 2px 5px rgba(0,0,0,1);
@@ -56,7 +55,6 @@ body {
 #title {
   text-align: left;
   padding: 2px;
-  height: 20px;
   margin-right: 30px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -65,7 +63,6 @@ body {
 }
 #attempts {
   float: right;
-  flex-direction: row;
   padding: 2px;
   color: #808080;
 }
@@ -112,13 +109,7 @@ body {
   float: left;
   display: inline-block;
   text-align: left;
-  min-width: 80px;
-}
-#import {
-  opacity: 0;
-}
-#file {
-  display: none;
+  min-width: 85px;
 }
 #bar {
   flex-shrink: 0;
@@ -131,7 +122,7 @@ body {
 }
 #bar i {
   height: 50px;
-  width: 25%;
+  width: 14.28571428571429%;
   text-align: center;
   line-height: 50px;
   display: inline-block;
@@ -153,9 +144,8 @@ body {
   <div id='splits'></div>
   <div id='timer'></div>
   <div id='bar'>
-    <i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-stop fa-2x' onclick='stop()'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
+    <i class='fa fa-save fa-2x' onclick='exportWsplit()'></i><i class='fa fa-folder-open fa-2x' onclick='importWsplit()'></i><i class='fa fa-trash fa-2x' onclick='trash()'></i><i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-stop fa-2x' onclick='stop()'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
   </div>
-  <!--div id='import'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div-->
 </div>
 <script src='jquery-2.1.3.min.js'></script>
 <script src='node_modules/moment/min/moment.min.js'></script>
@@ -204,6 +194,7 @@ if(typeof process !== 'undefined') {
   menu.append(new gui.MenuItem({ label: 'Add custom theme' }))
   menu.append(new gui.MenuItem({ label: 'Clear custom theme' }))
   menu.append(new gui.MenuItem({ label: 'Load defaults' }))
+  menu.append(new gui.MenuItem({ label: 'Show toolbar' }))
   menu.append(new gui.MenuItem({ label: 'Open devtools' }))
   menu.append(new gui.MenuItem({ type: 'separator' }))
   menu.append(new gui.MenuItem({ label: 'Exit' }))
@@ -213,14 +204,15 @@ if(typeof process !== 'undefined') {
   menu.items[4].click = function() { stop() }
   menu.items[5].click = function() { pause() }
   menu.items[6].click = function() { reset() }
-  menu.items[7].click = function() { reset(); resets = 10; reset() }
+  menu.items[7].click = function() { trash() }
   menu.items[8].click = function() { undo() }
   menu.items[10].click = function() { loopOptions() }
   menu.items[11].click = function() { getCss() }
   menu.items[12].click = function() { $('#custom').html(''); save() }
   menu.items[13].click = function() { localStorage.clear(); alert('Restart to see changes.') }
-  menu.items[14].click = function() { win.showDevTools() }
-  menu.items[16].click = function() { win.close() }
+  menu.items[14].click = function() { $('#bar').slideToggle() }
+  menu.items[15].click = function() { win.showDevTools() }
+  menu.items[17].click = function() { win.close() }
   window.oncontextmenu = function(e) {
     if(e.button == 2) {
       menu.popup(e.clientX, e.clientY)
@@ -425,6 +417,11 @@ var stop = function() {
   }
   stops++
   save()
+}
+var trash = function() {
+  reset()
+  resets = 10
+  reset()
 }
 var reset = function() {
   if(time==0 && !paused && !$('#timer').hasClass('stop') && resets > 5) {
@@ -684,9 +681,6 @@ $(function() {
     } else {
       exportWsplit()
     }
-  })
-  $('#bar').mousedown(function() {
-    return false
   })
   /*$('#file')[0].onclick = function(e){ if(e.which){ e.preventDefault() }}
   $('#file').dblclick(function(){ $('#file').click() })*/
