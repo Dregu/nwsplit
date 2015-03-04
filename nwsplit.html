@@ -186,7 +186,8 @@ if(typeof require !== 'undefined') {
   menu.append(new gui.MenuItem({ label: 'Start / Split' }))
   menu.append(new gui.MenuItem({ label: 'Stop / PBs to splits' }))
   menu.append(new gui.MenuItem({ label: 'Pause / Unpause' }))
-  menu.append(new gui.MenuItem({ label: 'Reset / Clear' }))
+  menu.append(new gui.MenuItem({ label: 'Reset' }))
+  menu.append(new gui.MenuItem({ label: 'Clear all' }))
   menu.append(new gui.MenuItem({ type: 'separator' }))
   menu.append(new gui.MenuItem({ label: 'Change options' }))
   menu.append(new gui.MenuItem({ label: 'Add custom theme' }))
@@ -201,15 +202,15 @@ if(typeof require !== 'undefined') {
   menu.items[4].click = function() { stop() }
   menu.items[5].click = function() { pause() }
   menu.items[6].click = function() { reset() }
-  menu.items[8].click = function() { loopOptions() }
-  menu.items[9].click = function() { getCss() }
-  menu.items[10].click = function() { $('#custom').html(''); save() }
-  menu.items[11].click = function() { localStorage.clear(); alert('Restart to see changes.') }
-  menu.items[12].click = function() { win.showDevTools() }
-  menu.items[14].click = function() { win.close() }
+  menu.items[7].click = function() { reset(); resets = 10; reset() }
+  menu.items[9].click = function() { loopOptions() }
+  menu.items[10].click = function() { getCss() }
+  menu.items[11].click = function() { $('#custom').html(''); save() }
+  menu.items[12].click = function() { localStorage.clear(); alert('Restart to see changes.') }
+  menu.items[13].click = function() { win.showDevTools() }
+  menu.items[15].click = function() { win.close() }
   window.oncontextmenu = function(e) {
     if(e.button == 2) {
-      e.preventDefault()
       menu.popup(e.clientX, e.clientY)
     }
   }
@@ -222,6 +223,7 @@ var paused = false
 var pausestart = 0
 var start = 0
 var file = 0
+var resets = 0
 var getCss = function() {
   var file = document.createElement('input')
   file.setAttribute('type', 'file')
@@ -292,6 +294,10 @@ var save = function() {
   }
 }
 var split = function() {
+  if(paused) {
+    pause()
+    return
+  }
   if(!inter) {
     if(!time) {
       start = new Date().getTime()-options.offset
@@ -339,7 +345,8 @@ var stop = function() {
       }
     }
   }
-  if(splits.length == 0 || $('.split:nth('+n+')').length == 0 || (!options.autoadd && time == options.offset)) {
+  //if(splits.length == 0 || $('.split:nth('+n+')').length == 0 || (!options.autoadd && time == options.offset)) {
+  if(splits.length == 0 || splits[0].best == 0 || $('.split:nth('+n+')').length == 0) {
     addSplit()
     if(time == options.offset) {
       n++
@@ -363,10 +370,17 @@ var stop = function() {
   save()
 }
 var reset = function() {
-  if(time==0 && !paused && !$('.timer').hasClass('stop')) {
+  if(time==0 && !paused && !$('.timer').hasClass('stop') && resets > 5) {
     splits = []
     $('.splits').html('')
+    title = 'Game title'
+    $('#title').html(title)
+    save()
   }
+  if(resets == 0) {
+    setTimeout(function(){resets = 0},700)
+  }
+  resets++
   $('.timer').removeClass('on stop paused')
   clearInterval(inter)
   start = 0
@@ -387,7 +401,7 @@ var pause = function() {
     pausetime = new Date().getTime()-pausestart
     start += pausetime
     paused = false
-  } else {
+  } else if(inter) {
     pausestart = new Date().getTime()
     paused = true
   }
@@ -539,12 +553,12 @@ $(function() {
     reader.readAsText(this.files[0])
   })
   $('#container').on('focus', '.time', function(e) {
-    var id = $(this).parents('.split').data('id')
+    var id = $(this).parents('.split').attr('data-id')
     var val = splits[id].best/1000
     $(this).html(val)
   })
   $('#container').on('blur', '.time', function(e) {
-    var id = $(this).parents('.split').data('id')
+    var id = $(this).parents('.split').attr('data-id')
     if(!splits[id]) {
       return
     }
@@ -554,7 +568,7 @@ $(function() {
     save()
   })
   $('#container').on('blur', '.name', function(e) {
-    var id = $(this).parents('.split').data('id')
+    var id = $(this).parents('.split').attr('data-id')
     if(!splits[id]) {
       return
     }
@@ -564,9 +578,12 @@ $(function() {
       $(this).parents('.split').remove()
       var m = 0
       $('.split').each(function() {
-        $(this).data('id', m)
+        $(this).attr('data-id', m)
         m++
       })
+      if(n>id) {
+        n--
+      }
     } else {
       splits[id].name = val
     }
