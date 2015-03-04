@@ -9,4 +9,4 @@ While this is meant for nw.js where it should work on windows, linux and mac, it
 
 You can also send javascript commands to the unix socket at /tmp/nwsplit.sock if using nw.js on linux/mac. Supported commands are split(), stop(), pause(), reset(), trash() and everything else you find in the source. Example: `$ echo "split()" | nc -U /tmp/nwsplit.sock`. This way you can bind your own hotkeys for any window manager.
 
-##### You can test the basic functions in the [live preview](https://cdn.rawgit.com/Dregu/nwsplit/4c91073b4985d8442d88287aad20ec89fe7fe0a5/nwsplit.html) or download [nw.js](http://nwjs.io) and [nwsplit.nw](https://cdn.rawgit.com/Dregu/nwsplit/4c91073b4985d8442d88287aad20ec89fe7fe0a5/nwsplit.nw) and run it on your pc.
+##### You can test the basic functions in the [live preview](https://github.com/Dregu/nwsplit/blob/5e92ca3f32f7e6909aa3b8da65e6f718db98fa5e/nwsplit.html) or download [nw.js](http://nwjs.io) and [nwsplit.nw](https://github.com/Dregu/nwsplit/blob/5e92ca3f32f7e6909aa3b8da65e6f718db98fa5e/nwsplit.nw) and run it on your pc.
