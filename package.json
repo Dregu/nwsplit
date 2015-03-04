@@ -1,8 +1,8 @@
 {
   "name": "nwsplit",
-  "description": "Cross platform speedrunning timer/splitter made with nw.js",
+  "description": "Cross platform speedrunning splitter/timer",
   "version": "1.0",
-  "main": "nwsplit.html",
+  "main": "index.html",
   "window": {
     "show": true,
     "toolbar": false,
