@@ -667,7 +667,7 @@ $(function() {
     $(window).scrollTop(0)
     $(window).scrollLeft(0)
   })
-  if(!('ontouchstart' in document.documentElement)) {
+  if(typeof process !== "undefined") {
     $('#bar').hide()
   }
   $('#title').blur(function() {
