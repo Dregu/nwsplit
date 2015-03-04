@@ -1,5 +1,5 @@
 /* Basic horizontal layout */
-#timer { position: absolute; width: 200px; font-size: 36px; height: 40px }
+#timer { position: absolute; width: 200px; font-size: 36px; height: 40px; line-height: 40px; }
 #splits { display: flex; top: 0; left: 200px; padding-right: 200px; }
 .split { min-width: 200px }
 .name { display: block; min-width: 100% }
