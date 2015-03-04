@@ -22,31 +22,46 @@ body {
   font-family: 'Input Mono', 'Consolas', monospace;
   color: #FFF;
 }
-#container {
-  position: relative;
+#top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 }
-#title {
-  text-align: center;
-  padding: 2px;
-}
-.timer {
+#timer {
   -webkit-app-region: drag;
   color: white;
   text-align: right;
   font-size: 60px;
+  height: 70px;
   font-weight: bold;
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
   border-bottom: 1px solid rgba(128,128,128,0.05);
   text-shadow: 2px 2px 5px rgba(0,0,0,1);
 }
-.timer.on {
+#timer.on {
   color: orange;
 }
-.timer.stop {
+#timer.stop {
   color: orangered;
 }
-.timer.paused {
+#timer.paused {
   color: #555;
+}
+#title {
+  text-align: center;
+  padding: 2px;
+  height: 20px;
+}
+#splits {
+  position: absolute;
+  top: 92px;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 .split {
   text-align: right;
@@ -90,9 +105,7 @@ body {
   opacity: 0;
 }
 #file {
-  display: block;
-  height: 1000px;
-  width: 100%;
+  display: none;
 }
 #bar {
   cursor: pointer;
@@ -119,29 +132,28 @@ body {
   }
 }
 </style>
+<style id='custom'></style>
 </head>
 <body>
 <div id='container'>
-<div id='timer' class='timer'></div>
-<div id='title' contenteditable='true'>Title</div>
-<div id='splits' class='splits'></div>
-<div id='import'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div>
-<div id='bar'>
-<i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-stop fa-2x' onclick='stop()'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
-</div>
+  <div id='splits' class='splits'></div>
+  <div id='top'>
+    <div id='timer' class='timer'></div>
+    <div id='title' contenteditable='true'>Title</div>
+  </div>
+  <div id='import'><input type='file' id='file' accept='.lss,.wsplit' tabindex='-1'></div>
+  <div id='bar'>
+    <i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-stop fa-2x' onclick='stop()'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
+  </div>
 </div>
 <script src='jquery-2.1.3.min.js'></script>
 <script src='node_modules/moment/min/moment.min.js'></script>
 <script src='node_modules/moment-duration-format/lib/moment-duration-format.js'></script>
 <script>
 var title = (localStorage.title?localStorage.title:'Game title')
-$('#title').html(title)
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
-var defaults = {precision: 2, format: 'd[d] hh:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10, autoadd: false, ontop: true, trim: 'left', zoom: 0}
+var defaults = {precision: 2, format: 'd[d] hh:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10, autoadd: false, ontop: true, trim: 'left', zoom: 0, css: ''}
 var options = (localStorage.options&&JSON.parse(localStorage.options)?JSON.parse(localStorage.options):defaults)
-if(localStorage.style) {
-  $('style').html(localStorage.style)
-}
 if(typeof require !== 'undefined') {
   var gui = require('nw.gui')
   var win = gui.Window.get()
@@ -167,19 +179,21 @@ if(typeof require !== 'undefined') {
     win.height = localStorage.height
   }
   var menu = new gui.Menu()
-  menu.append(new gui.MenuItem({ label: 'Import splits' }));
-  menu.append(new gui.MenuItem({ label: 'Export splits' }));
-  menu.append(new gui.MenuItem({ type: 'separator' }));
-  menu.append(new gui.MenuItem({ label: 'Start / Split' }));
-  menu.append(new gui.MenuItem({ label: 'Stop / PBs to splits' }));
-  menu.append(new gui.MenuItem({ label: 'Pause / Unpause' }));
-  menu.append(new gui.MenuItem({ label: 'Reset / Clear' }));
-  menu.append(new gui.MenuItem({ type: 'separator' }));
-  menu.append(new gui.MenuItem({ label: 'Change options' }));
-  menu.append(new gui.MenuItem({ label: 'Load defaults' }));
-  menu.append(new gui.MenuItem({ label: 'Open devtools' }));
-  menu.append(new gui.MenuItem({ type: 'separator' }));
-  menu.append(new gui.MenuItem({ label: 'Exit' }));
+  menu.append(new gui.MenuItem({ label: 'Import splits' }))
+  menu.append(new gui.MenuItem({ label: 'Export splits' }))
+  menu.append(new gui.MenuItem({ type: 'separator' }))
+  menu.append(new gui.MenuItem({ label: 'Start / Split' }))
+  menu.append(new gui.MenuItem({ label: 'Stop / PBs to splits' }))
+  menu.append(new gui.MenuItem({ label: 'Pause / Unpause' }))
+  menu.append(new gui.MenuItem({ label: 'Reset / Clear' }))
+  menu.append(new gui.MenuItem({ type: 'separator' }))
+  menu.append(new gui.MenuItem({ label: 'Change options' }))
+  menu.append(new gui.MenuItem({ label: 'Add custom theme' }))
+  menu.append(new gui.MenuItem({ label: 'Clear custom theme' }))
+  menu.append(new gui.MenuItem({ label: 'Load defaults' }))
+  menu.append(new gui.MenuItem({ label: 'Open devtools' }))
+  menu.append(new gui.MenuItem({ type: 'separator' }))
+  menu.append(new gui.MenuItem({ label: 'Exit' }))
   menu.items[0].click = function() { $('#file').click() }
   menu.items[1].click = function() { generateWsplit() }
   menu.items[3].click = function() { split() }
@@ -187,9 +201,11 @@ if(typeof require !== 'undefined') {
   menu.items[5].click = function() { pause() }
   menu.items[6].click = function() { reset() }
   menu.items[8].click = function() { loopOptions() }
-  menu.items[9].click = function() { localStorage.clear(); alert('Restart to see changes.') }
-  menu.items[10].click = function() { win.showDevTools() }
-  menu.items[12].click = function() { win.close() }
+  menu.items[9].click = function() { getCss() }
+  menu.items[10].click = function() { $('#custom').html(''); save() }
+  menu.items[11].click = function() { localStorage.clear(); alert('Restart to see changes.') }
+  menu.items[12].click = function() { win.showDevTools() }
+  menu.items[14].click = function() { win.close() }
   window.oncontextmenu = function(e) {
     if(e.button == 2) {
       e.preventDefault()
@@ -205,6 +221,20 @@ var paused = false
 var pausestart = 0
 var start = 0
 var file = 0
+var getCss = function() {
+  var file = document.createElement('input')
+  file.setAttribute('type', 'file')
+  file.onchange = function() {
+    var reader = new FileReader()
+    reader.onloadend = function() {
+      data = reader.result
+      $('#custom').html(data)
+      save()
+    }
+    reader.readAsText(this.files[0])
+  }
+  file.click()
+}
 var loopOptions = function() {
   var help = {
     ontop: '[ontop] Always on top, true/false (default true)',
@@ -251,8 +281,8 @@ var loopOptions = function() {
 var save = function() {
   localStorage.title = title
   localStorage.splits = JSON.stringify(splits)
+  options.css = $('#custom').html()
   localStorage.options = JSON.stringify(options)
-  localStorage.style = $('style').html()
   if(typeof win !== 'undefined') {
     localStorage.width = win.width
     localStorage.height = win.height
@@ -264,6 +294,7 @@ var split = function() {
   if(!inter) {
     if(!time) {
       start = new Date().getTime()-options.offset
+      n=0
     }
     inter = setInterval(updateTime, options.interval)
     $('.timer').removeClass('stop').addClass('on')
@@ -275,6 +306,7 @@ var split = function() {
     addSplit()
     n++
   }
+  centerSplit()
 }
 var addSplit = function() {
   var split = (new Date().getTime()-start)
@@ -282,7 +314,7 @@ var addSplit = function() {
     split = 0
   }
   var seg = split
-  if(n > 0) {
+  if(splits[n-1]) {
     seg = split - splits[n-1].current
   }
   var name = 'Split '+(1+n)
@@ -315,7 +347,7 @@ var stop = function() {
   if(splits[n]) {
     var split = (new Date().getTime()-start)
     var seg = split
-    if(n > 0) {
+    if(splits[n-1]) {
       seg = split - splits[n-1].current
     }
     splits[n].current = split
@@ -330,11 +362,11 @@ var stop = function() {
   save()
 }
 var reset = function() {
-  $('.timer').removeClass('on stop paused')
-  if(time==0) {
+  if(time==0 && !paused && !$('.timer').hasClass('stop')) {
     splits = []
     $('.splits').html('')
   }
+  $('.timer').removeClass('on stop paused')
   clearInterval(inter)
   start = 0
   inter = 0
@@ -346,6 +378,7 @@ var reset = function() {
   $('.diff').removeClass('better worse gold')
   $('.diff').html('')
   $('.split').removeClass('current')
+  centerSplit()
   save()
 }
 var pause = function() {
@@ -357,6 +390,25 @@ var pause = function() {
     pausestart = new Date().getTime()
     paused = true
   }
+}
+var centerSplit = function() {
+  resizeSplits()
+  var el = $('.split[data-id='+n+']')
+  if(el.length == 0) {
+    return
+  }
+  var from = { top: $('#splits').scrollTop(), left: $('#splits').scrollLeft() }
+  $('#splits').scrollTop(0)
+  $('#splits').scrollLeft(0)
+  var to = { top: el.position().top-$('#splits').height()/2+el.height()/2, left: el.position().left-$('#splits').width()/2+el.width()/2 }
+  $('#splits').scrollTop(from.top)
+  $('#splits').scrollLeft(from.left)
+  $('#splits').stop(true,true).animate({scrollTop: to.top, scrollLeft: to.left}, {duration: 200, queue: false})
+  //$('#splits').scrollTop(to.top)
+  //$('#splits').scrollLeft(to.left)
+}
+var resizeSplits = function() {
+  $('#splits').height($(window).height()-$('#top').height())
 }
 var updateTime = function() {
   $('.timer').removeClass('paused')
@@ -419,6 +471,11 @@ var generateWsplit = function() {
   }
 }
 $(function() {
+  $('#title').html(title)
+  $('#custom').html(options.css)
+  $(window).resize(function(e) {
+    centerSplit()
+  })
   $(window).keydown(function(e) {
     if(e.which == options.local_split) {
       e.preventDefault()
@@ -525,6 +582,7 @@ $(function() {
   });
   $(window).scroll(function() {
     $(window).scrollTop(0)
+    $(window).scrollLeft(0)
   })
   if(!('ontouchstart' in document.documentElement) && $(window).height() > 120) {
     $('#bar').mousemove(function() {
@@ -538,13 +596,17 @@ $(function() {
   })
   $('.splits').dblclick(function(e) {
     e.preventDefault()
-    generateWsplit()
+    if(splits.length == 0) {
+      $('#file').click()
+    } else {
+      generateWsplit()
+    }
   })
   $('#bar').mousedown(function() {
     return false
   })
-  $('#file')[0].onclick = function(e){ if(e.which){ e.preventDefault() }}
-  $('#file').dblclick(function(){ $('#file').click() })
+  /*$('#file')[0].onclick = function(e){ if(e.which){ e.preventDefault() }}
+  $('#file').dblclick(function(){ $('#file').click() })*/
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
 })
