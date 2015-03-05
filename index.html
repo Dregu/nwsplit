@@ -124,6 +124,7 @@ body {
   flex-shrink: 0;
   height: 200px;
   width: 100%;
+  border-top: 1px solid #222;
 }
 #bar {
   order: 6;
@@ -159,7 +160,7 @@ body {
   <div id='timer'></div>
   <div id='graph'></div>
   <div id='bar'>
-    <i class='fa fa-save fa-2x' onclick='exportWsplit()'></i><i class='fa fa-folder-open fa-2x' onclick='importWsplit()'></i><i class='fa fa-trash fa-2x' onclick='trash()'></i><i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-plus-square fa-2x' onclick='stop()' id='stopbutton'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
+    <i class='fa fa-folder-open fa-2x' onclick='importExport()' id='importbutton'></i><i class='fa fa-line-chart fa-2x' onclick='showGraph()'></i><i class='fa fa-trash fa-2x' onclick='trash()'></i><i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-plus-square fa-2x' onclick='stop()' id='stopbutton'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
   </div>
 </div>
 <script src='jquery-2.1.3.min.js'></script>
@@ -286,7 +287,7 @@ var getCss = function() {
   file.click()
 }
 var plotopt = {
-  colors: ['#ffa500'],
+  colors: ['#eee'],
   series: {
     lines: { show: true, lineWidth: 1 },
     points: { show: true, fill: false, radius: 3 },
@@ -310,13 +311,16 @@ var showGraph = function() {
     $('#graph').slideDown()
     graph = true
   }
+  if(plot) {
+    plot.resize()
+  }
 }
 var draw = function() {
   if(!graph || $('#graph').is(':hidden')) {
     graph = false;
   }
   if(paused || splits.length == 0 || !time || !graph) {
-    return
+    return false
   }
   var data = []
   var ticks = [0]
@@ -523,16 +527,6 @@ var addSplit = function(add) {
     splits[n].current = split
     splits[n].seg = seg
   }
-  /*if(options.autosave) {
-    if(splits[n].current < splits[n].best || splits[n].best == 0) {
-      splits[n].best = splits[n].current
-      $('.time:nth('+n+')').html(moment.duration(splits[n].best).format(options.format, options.precision, {trim: options.trim}))
-    }
-    if(splits[n].seg < splits[n].bestseg || splits[n].bestseg == 0) {
-      splits[n].bestseg = splits[n].seg
-      $('.seg:nth('+n+')').html(moment.duration(splits[n].bestseg).format(options.format, options.precision, {trim: options.trim}))
-    }
-  }*/
   if(options.autoadd || n < splits.length-1) {
     n++
   }
@@ -596,6 +590,7 @@ var reset = function() {
     options.attempts = 0
     $('#attempts').html(options.attempts)
     save()
+    $('#importbutton').removeClass('fa-save').addClass('fa-folder-open')
   }
   if(resets == 0) {
     setTimeout(function(){resets = 0},700)
@@ -648,8 +643,6 @@ var centerSplit = function() {
   $('#splits').scrollTop(from.top)
   $('#splits').scrollLeft(from.left)
   $('#splits').stop(true,true).animate({scrollTop: to.top, scrollLeft: to.left}, {duration: 200, queue: false})
-  //$('#splits').scrollTop(to.top)
-  //$('#splits').scrollLeft(to.left)
 }
 var resizeSplits = function() {
   $('#container').height($(window).height())
@@ -693,6 +686,7 @@ var updateTime = function() {
 var appendSplit = function(myname, mytime, myseg) {
   var id = $('.split').length
   $('#splits').append('<div class="split" data-id="'+id+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="time" contenteditable="true">'+ftime(mytime)+'</span><span class="seg" contenteditable="true">'+ftime(myseg)+'</span></div>')
+  $('#importbutton').removeClass('fa-folder-open').addClass('fa-save')
 }
 var die = function() {
   localStorage.clear()
@@ -700,6 +694,13 @@ var die = function() {
 }
 var rnd = function(num) {
   return parseFloat(num.toFixed(3))
+}
+var importExport = function() {
+  if(splits.length > 0) {
+    exportWsplit()
+  } else {
+    importWsplit()
+  }
 }
 var exportWsplit = function() {
   var data = 'Title='+options.title+'\nAttempts='+options.attempts+'\nOffset=0\nSize=200,25\n'
@@ -882,8 +883,6 @@ $(function() {
       exportWsplit()
     }
   })
-  /*$('#file')[0].onclick = function(e){ if(e.which){ e.preventDefault() }}
-  $('#file').dblclick(function(){ $('#file').click() })*/
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
 })
