@@ -1,7 +1,7 @@
 # nwsplit
 ##### Cross platform speedrunning splitter/timer made for [nw.js](http://github.com/nwjs/nw.js) that runs on windows, linux and mac, and also in the browser and mobile devices.
 
-##### You can test the basic functions in the [live demo](https://cdn.rawgit.com/Dregu/nwsplit/de158226ba743d31ad7a069d31d8a3acd806e9be/nwsplit.html) or download [nw.js](http://nwjs.io) and [nwsplit.nw](https://cdn.rawgit.com/Dregu/nwsplit/de158226ba743d31ad7a069d31d8a3acd806e9be/nwsplit.nw) and run it on your pc.
+##### You can test the basic functions in the [live demo](http://dregu.github.io/nwsplit/) or download [nw.js](http://nwjs.io) and [nwsplit.nw](http://dregu.github.io/nwsplit/nwsplit.nw) and run it on your pc.
 
 This was done in a few hours just for fun. Has some cool functions like importing and exporting, autoadding splits, tracking personal bests, gold splits, undo, pause, editing on the fly...
 
