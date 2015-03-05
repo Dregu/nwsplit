@@ -119,9 +119,15 @@ body {
   text-align: left;
   min-width: 85px;
 }
-#bar {
-  flex-shrink: 0;
+#graph {
   order: 5;
+  flex-shrink: 0;
+  height: 200px;
+  width: 100%;
+}
+#bar {
+  order: 6;
+  flex-shrink: 0;
   cursor: pointer;
   white-space: nowrap;
   height: 50px;
@@ -151,16 +157,18 @@ body {
   </div>
   <div id='splits'></div>
   <div id='timer'></div>
+  <div id='graph'></div>
   <div id='bar'>
     <i class='fa fa-save fa-2x' onclick='exportWsplit()'></i><i class='fa fa-folder-open fa-2x' onclick='importWsplit()'></i><i class='fa fa-trash fa-2x' onclick='trash()'></i><i class='fa fa-power-off fa-2x' onclick='reset()'></i><i class='fa fa-pause fa-2x' onclick='pause()'></i><i class='fa fa-plus-square fa-2x' onclick='stop()' id='stopbutton'></i><i class='fa fa-play fa-2x' onclick='split()'></i>
   </div>
 </div>
 <script src='jquery-2.1.3.min.js'></script>
+<script src='node_modules/flot/jquery.flot.js'></script>
 <script src='node_modules/moment/min/moment.min.js'></script>
 <script src='node_modules/moment-duration-format/lib/moment-duration-format.js'></script>
 <script>
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
-var defaults = {precision: 2, format: 'd[d] hh:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 10, autoadd: false, ontop: true, trim: 'left', zoom: 0, css: '', attempts: 0, autosave: true}
+var defaults = {precision: 2, format: 'd[d] hh:mm:ss', global_split: 'Ctrl+F12', global_stop: 'Ctrl+F11', global_reset: 'Ctrl+F9', global_pause: 'Ctrl+F10', local_split: 123, local_stop: 122, local_reset: 120, local_pause: 121, offset: 0, interval: 16, autoadd: false, ontop: true, trim: 'left', zoom: 0, css: '', attempts: 0, autosave: true}
 var options = (localStorage.options&&JSON.parse(localStorage.options)?JSON.parse(localStorage.options):defaults)
 if(typeof process !== 'undefined') {
   var gui = require('nw.gui')
@@ -202,6 +210,7 @@ if(typeof process !== 'undefined') {
   menu.append(new gui.MenuItem({ label: 'Add custom theme' }))
   menu.append(new gui.MenuItem({ label: 'Clear custom theme' }))
   menu.append(new gui.MenuItem({ label: 'Load defaults' }))
+  menu.append(new gui.MenuItem({ label: 'Show graph' }))
   menu.append(new gui.MenuItem({ label: 'Show toolbar' }))
   menu.append(new gui.MenuItem({ label: 'Open devtools' }))
   menu.append(new gui.MenuItem({ type: 'separator' }))
@@ -219,9 +228,10 @@ if(typeof process !== 'undefined') {
   menu.items[12].click = function() { getCss() }
   menu.items[13].click = function() { $('#custom').html(''); save() }
   menu.items[14].click = function() { localStorage.clear(); alert('Restart to see changes.') }
-  menu.items[15].click = function() { $('#bar').slideToggle() }
-  menu.items[16].click = function() { win.showDevTools() }
-  menu.items[18].click = function() { win.close() }
+  menu.items[15].click = function() { showGraph() }
+  menu.items[16].click = function() { $('#bar').slideToggle() }
+  menu.items[17].click = function() { win.showDevTools() }
+  menu.items[19].click = function() { win.close() }
   window.oncontextmenu = function(e) {
     if(e.button == 2) {
       menu.popup(e.clientX, e.clientY)
@@ -258,6 +268,8 @@ var start = 0
 var file = 0
 var resets = 0
 var stops = 0
+var plot;
+var graph = true;
 var getCss = function() {
   var file = document.createElement('input')
   file.setAttribute('type', 'file')
@@ -272,6 +284,128 @@ var getCss = function() {
     reader.readAsText(this.files[0])
   }
   file.click()
+}
+var plotopt = {
+  colors: ['#ffa500'],
+  series: {
+    lines: { show: true, lineWidth: 1 },
+    points: { show: true, fill: false, radius: 3 },
+    shadowSize: 0
+  },
+  legend: { show: false },
+  xaxis: { show: true, tickColor: '#222', color: '#333', tickFormatter: function(t){return ftime(t)} },
+  yaxis: { show: true, ticks: [0], tickColor: '#222', color: 'transparent' },
+  grid: {
+    show: true,
+    borderWidth: 0,
+    borderColor: '#333',
+    margin: 5,
+  }
+}
+var showGraph = function() {
+  if(graph) {
+    $('#graph').slideUp()
+    graph = false
+  } else {
+    $('#graph').slideDown()
+    graph = true
+  }
+}
+var draw = function() {
+  if(!graph || $('#graph').is(':hidden')) {
+    graph = false;
+  }
+  if(paused || splits.length == 0 || !time || !graph) {
+    return
+  }
+  var data = []
+  var ticks = [0]
+  var max = 0
+  for(var i in splits) {
+    i = parseInt(i)
+    var y = 0
+    var x = 0
+    if(i==n) {
+      y = time-splits[i].best
+      x = time
+    } else {
+      y = splits[i].current-splits[i].best
+      x = splits[i].current
+    }
+    ticks.push(splits[i].best)
+    if(i<=n) {
+      data.push([x, y])
+    }
+    if(splits[i-1] && Math.abs(splits[i].best-splits[i-1].best) > max) {
+      max = Math.abs(splits[i].best-splits[i-1].best)
+    } else {
+      max = Math.abs(splits[0].best)
+    }
+  }
+  if(!plot) {
+    plot = $.plot('#graph', [[0,0]], plotopt)
+  }
+  var segcolors = ['rgba(255,165,0,','rgba(50,205,50,','rgba(178,34,34,']
+  var colors = []
+  var lastpoint = [0,0]
+  var segments = []
+  var opac = 1
+  for(var i in data) {
+    if(n==0) {
+      opac = time/splits[n].bestseg
+      if(!inter) {
+        opac = 1
+      }
+      if(time < splits[0].bestseg) {
+        colors.push(segcolors[0]+opac+')')
+      } else if(data[n][1] < 0) {
+        colors.push(segcolors[1]+opac+')')
+      } else {
+        colors.push(segcolors[2]+opac+')')
+      }
+    } else if(i==n) {
+      opac = (time-splits[i-1].current)/splits[i].bestseg
+      if(!inter) {
+        opac = 1
+      }
+      if(time-splits[i-1].current < splits[i].bestseg) {
+        colors.push(segcolors[0]+opac+')')
+      } else if(data[n][1] < 0) {
+        colors.push(segcolors[1]+opac+')')
+      } else {
+        colors.push(segcolors[2]+opac+')')
+      }
+    } else {
+      opac = 1
+      if(splits[i].seg < splits[i].bestseg) {
+        colors.push(segcolors[0]+opac+')')
+      } else if(data[i][1] < 0) {
+        colors.push(segcolors[1]+opac+')')
+      } else {
+        colors.push(segcolors[2]+opac+')')
+      }
+    }
+    if(data[i][1] > max) {
+      max = data[i][1]
+    }
+    segments.push([lastpoint,data[i]])
+    lastpoint = data[i]
+  }
+  colors.reverse()
+  segments.reverse()
+  plot.getOptions().colors = colors
+  plot.setData(segments)
+  plot.getOptions().xaxes[0].ticks = ticks
+  plot.getOptions().yaxes[0].max = max
+  plot.getOptions().yaxes[0].min = -max
+  if(time > splits[splits.length-1].best) {
+    plot.getOptions().xaxes[0].max = time
+  } else {
+    plot.getOptions().xaxes[0].max = splits[splits.length-1].best
+  }
+  plot.getOptions().xaxes[0].min = 0
+  plot.setupGrid()
+  plot.draw()
 }
 var loopOptions = function() {
   var help = {
@@ -370,6 +504,7 @@ var addSplit = function(add) {
     var name = 'Split '+(splits.length+1)
     splits[splits.length] = { name: name, current: 0, best: 0, seg: 0, bestseg: 0 }
     appendSplit(name, 0, 0)
+    draw()
     return    
   }
   var split = (new Date().getTime()-start)
@@ -401,6 +536,9 @@ var addSplit = function(add) {
   if(options.autoadd || n < splits.length-1) {
     n++
   }
+  if(inter) {
+    draw()
+  }
 }
 var saveSplits = function(all) {
   for(var i in splits) {
@@ -420,6 +558,10 @@ var stop = function() {
     return
   }
   if(inter == 0 || options.autosave) {
+    clearInterval(inter)
+    inter = 0
+    paused = false
+    pausetime = 0
     saveSplits(stops > 5)
   }
   if(time > 0) {
@@ -439,31 +581,6 @@ var stop = function() {
   save()
   centerSplit()
   $('#stopbutton').removeClass('fa-plus-square fa-stop').addClass('fa-clock-o')
-}
-var stopx = function() {
-  if(inter == 0) {
-    if(splits.length == 0 || (splits[0].current == 0 && splits[0].best == 0)) {
-      if(n==0) {
-        n=splits.length
-      }
-      addSplit()
-      if(time == options.offset) {
-        n++
-      }
-    }
-  } else {
-    addSplit()
-    clearInterval(inter)
-    inter = 0
-    paused = false
-    pausetime = 0
-    $('#timer').removeClass('running paused').addClass('stopped')
-  }
-  if(stops == 0) {
-    setTimeout(function(){stops = 0},700)
-  }
-  stops++
-  save()
 }
 var trash = function() {
   reset()
@@ -537,12 +654,17 @@ var centerSplit = function() {
 var resizeSplits = function() {
   $('#container').height($(window).height())
   $('#container').width($(window).width())
+  if(plot) {
+    plot.resize()
+    plot.draw()
+  }
 }
 var updateTime = function() {
   $('#timer').removeClass('paused')
   if(paused) {
     $('#timer').addClass('paused')
   } else if(inter) {
+    draw()
     time = new Date().getTime()-start
   } else {
     time = options.offset

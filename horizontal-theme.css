@@ -6,4 +6,4 @@
 .split { min-width: 200px }
 .name { display: block; min-width: 100% }
 .diff { clear: left; float: left }
-#titlerow, #bar { display: none }
+#titlerow, #bar, #graph { display: none }
