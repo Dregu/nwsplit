@@ -9,4 +9,4 @@ Styling can be done live in devtools or with custom css files. Options can be ch
 
 While this is meant for nw.js where it should work on windows, linux and mac, it also runs in chrome, firefox, internet explorer, safari, chrome for android, firefox mobile... On mobile it even works in the background. Running in nw.js gives you global hotkeys, menus, borderless resizable window, themes, and propably some other features.
 
-You can also send javascript commands to the unix socket at `/tmp/nwsplit.sock` if using nw.js on linux/mac. Supported commands are split(), stop(), pause(), reset(), trash() and everything else you find in the source. Example: `$ echo "split()" | nc -U /tmp/nwsplit.sock`. This way you can bind your own hotkeys for any window manager.
+You can also send javascript commands to the unix socket at `/tmp/nwsplit.sock` or the named pipe at `\\.\pipe\nwsplit` on windows. Supported commands are split(), stop(), pause(), reset(), trash() and everything else you find in the source. Example: `$ echo "split()" | nc -U /tmp/nwsplit.sock` or `echo split() > \\.\pipe\nwsplit`. This way you can bind your own hotkeys for any window manager.

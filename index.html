@@ -238,17 +238,24 @@ if(typeof process !== 'undefined') {
       menu.popup(e.clientX, e.clientY)
     }
   }
+  var sock = false
   if(process.platform.match(/linux|darwin/ig)) {
-    if(fs.existsSync('/tmp/nwsplit.sock')) {
-      fs.unlinkSync('/tmp/nwsplit.sock')
+    var os = require('os')
+    sock = os.tmpDir()+'/nwsplit.sock'
+    if(fs.existsSync(sock)) {
+      fs.unlinkSync(sock)
     }
+  } else if(process.platform.match(/win32/ig)) {
+    sock = '\\\\.\\pipe\\nwsplit'
+  }
+  if(sock) {
     var net = require('net')
     var server = net.createServer(function(stream) {
       stream.on('data', function(c) {
         eval(c.toString())
       })
     })
-    server.listen('/tmp/nwsplit.sock')
+    server.listen(sock)
   }
   win.on('close', function() {
     this.hide()
@@ -340,15 +347,12 @@ var draw = function() {
     if(i<=n) {
       data.push([x, y])
     }
-    if(splits[i-1] && Math.abs(splits[i].best-splits[i-1].best) > max) {
-      max = Math.abs(splits[i].best-splits[i-1].best)
-    } else {
-      max = Math.abs(splits[0].best)
-    }
+    max = splits[i].best
   }
   if(!plot) {
     plot = $.plot('#graph', [[0,0]], plotopt)
   }
+  max /= 60
   var segcolors = ['rgba(255,165,0,','rgba(50,205,50,','rgba(178,34,34,']
   var colors = []
   var lastpoint = [0,0]
@@ -389,8 +393,8 @@ var draw = function() {
         colors.push(segcolors[2]+opac+')')
       }
     }
-    if(data[i][1] > max) {
-      max = data[i][1]
+    if(Math.abs(data[i][1]) > max && ((i<n) || (i==n && data[i][1] > 0))) {
+      max = Math.abs(data[i][1])
     }
     segments.push([lastpoint,data[i]])
     lastpoint = data[i]
