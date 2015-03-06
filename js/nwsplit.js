@@ -12,7 +12,7 @@ var defaults = {
   format: 'd[d] hh:mm:ss',
   trim: 'left',
   offset: 0,
-  interval: 10,
+  interval: 20,
   autoadd: false,
   autosave: true,
   title: 'Game title',
@@ -32,7 +32,7 @@ var defaults = {
   height: 300,
   x: 300,
   y: 300,
-  zoom: 0,
+  zoom: 1,
   css: ''
 }
 var RESET = 0, RUNNING = 1, PAUSED = 2, STOPPED = 3;
@@ -271,33 +271,33 @@ var editOptions = function() {
     return
   }
   var help = {
-    ontop: 'Always on top, true/false (default true)',
-    zoom: 'Zoom level, 0.1-5 (default 1)',
-    precision: 'Number of decimals in last token, 0..3 (default 2)',
-    format: 'Time format, moment-duration-format (default d[d] hh:mm:ss)',
-    trim: 'Trim leading zeroes, left/right/false (default left)',
-    interval: 'Timer update interval, ms (default 16)',
-    autoadd: 'Autoadd new splits with split or stop on last split, true/false (default false)',
-    autosave: 'Autosave personal bests as splits (default true)',
-    offset: 'Timer start offset, ms (default 0)',
-    title: 'Game title (default Game title)',
-    attempts: 'Number of attempts (default 0)',
-    splits: 'Number of splits to create when clearing all (default 0)',
-    graph: 'Show the split graph (default true)',
-    toolbar: 'Show the toolbar (can\'t hide this in browser) (default true)',
-    global_split: 'Global hotkey: Start/Split (default Ctrl+F12)',
-    global_stop: 'Global hotkey: Stop/PB->Splits (default Ctrl+F11)',
-    global_pause: 'Global hotkey: Pause/Unpause (default Ctrl+F10)',
-    global_reset: 'Global hotkey: Reset/Clear (default Ctrl+F9)',
-    local_split: 'Local hotkey: Start/Split, keycode (default 123)',
-    local_stop: 'Local hotkey: Stop/PB->Splits, keycode (default 122)',
-    local_pause: 'Local hotkey: Pause/Unpause, keycode (default 121)',
-    local_reset: 'Local hotkey: Reset/Clear, keycode (default 120)'
+    ontop: 'Always on top, true/false',
+    zoom: 'Zoom level, 0.1-5',
+    precision: 'Number of decimals in last token, 0..3',
+    format: 'Time format, moment-duration-format',
+    trim: 'Trim leading zeroes, left/right/false',
+    interval: 'Timer update interval, ms',
+    autoadd: 'Autoadd new splits with split or stop on last split, true/false',
+    autosave: 'Autosave personal bests as splits',
+    offset: 'Timer start offset, ms',
+    title: 'Game title',
+    attempts: 'Number of attempts',
+    splits: 'Number of splits to create when clearing all',
+    graph: 'Show the split graph',
+    toolbar: 'Show the toolbar (can\'t hide this in browser)',
+    global_split: 'Global hotkey: Start/Split',
+    global_stop: 'Global hotkey: Stop/PB->Splits',
+    global_pause: 'Global hotkey: Pause/Unpause',
+    global_reset: 'Global hotkey: Reset/Clear',
+    local_split: 'Local hotkey: Start/Split, keycode',
+    local_stop: 'Local hotkey: Stop/PB->Splits, keycode',
+    local_pause: 'Local hotkey: Pause/Unpause, keycode',
+    local_reset: 'Local hotkey: Reset/Clear, keycode'
   }
   $('#options').html('')
   $('#options').append('<div class="help">Hover over a setting for help.</div><button class="saveoptions">Save settings</button>')
   for(var i in help) {
-    $('#options').append('<div class="option"><span class="variable" title="'+help[i]+'">'+i+':</span><span class="value" contenteditable="true" title="'+help[i]+'" data-key="'+i+'">'+options[i]+'</span></div>')
+    $('#options').append('<div class="option"><span class="variable" title="'+help[i]+' (default: '+defaults[i]+')">'+i+':</span><span class="value" contenteditable="true" title="'+help[i]+' (default: '+defaults[i]+')" data-key="'+i+'">'+options[i]+'</span></div>')
   }
   $('#options').append('<button class="saveoptions">Save settings</button>')
   $('#graph').hide()
