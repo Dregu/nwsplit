@@ -1,0 +1,10 @@
+/* Basic horizontal layout */
+#container { flex-direction: row }
+#attempts { display: none; }
+#timer { width: 260px; font-size: 56px; line-height: 50px; height: auto; }
+#splits { display: flex; flex-direction: row; }
+.split { min-width: 200px; flex-direction: column; align-items: inherit; }
+.name { display: block; min-width: 100%; overflow: visible; position: absolute; }
+.seg, .time, .diff { width: auto; }
+.diff { clear: left; float: left }
+#titlerow, #bar, #graph { display: none }

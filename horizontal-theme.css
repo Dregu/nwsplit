@@ -1,9 +1,0 @@
-/* Basic horizontal layout */
-#container { flex-direction: row }
-#attempts { display: none; }
-#timer { width: 200px; font-size: 36px; line-height: 40px; height: auto; }
-#splits { display: flex; flex-direction: row; }
-.split { min-width: 200px }
-.name { display: block; min-width: 100% }
-.diff { clear: left; float: left }
-#titlerow, #bar, #graph { display: none }

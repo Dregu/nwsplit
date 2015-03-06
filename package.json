@@ -1,7 +1,7 @@
 {
   "name": "nwsplit",
   "description": "Cross platform speedrunning splitter/timer",
-  "version": "1.0",
+  "version": "1.1",
   "main": "index.html",
   "window": {
     "show": true,
@@ -11,8 +11,9 @@
     "position": "center",
     "always-on-top": true,
     "width": 300,
-    "height": 300,
+    "height": 500,
     "min_width": 100,
-    "min_height": 20
+    "min_height": 20,
+    "icon": "img/goldsplit.png"
   }
 }

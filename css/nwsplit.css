@@ -1,0 +1,232 @@
+* {
+  -webkit-app-region: no-drag;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,1);
+  overflow: hidden;
+  font-family: 'Input Mono', 'Segoe UI', 'Consolas', monospace;
+  font-weight: bold;
+  color: #FFF;
+}
+#container {
+  display: flex;
+  flex-direction: column;
+}
+#timer {
+  padding-right: 10px;
+  order: 1;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+  color: white;
+  text-align: right;
+  font-size: 60px;
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
+  border-bottom: 1px solid rgba(128,128,128,0.05);
+  text-shadow: 2px 2px 5px rgba(0,0,0,1);
+}
+#timer * {
+  -webkit-app-region: drag;
+}
+#timer.running {
+  color: orange;
+}
+#timer.stopped {
+  color: orange;
+}
+#timer.paused {
+  color: #555;
+}
+#timer.running.better {
+  text-shadow: 0 0 6px limegreen;
+  color: limegreen;
+}
+#timer.running.worse {
+  text-shadow: 0 0 6px orangered;
+  color: orangered;
+}
+.dot, .num:last-child {
+  font-size: .7em;
+}
+#titlerow {
+  flex-shrink: 0;
+  order: 2;
+}
+#title {
+  text-align: left;
+  padding: 2px;
+  margin-right: 30px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: skyblue;
+}
+#attempts {
+  float: right;
+  padding: 2px;
+  color: #999;
+  min-width: 25px;
+  text-align: right;
+}
+#splits {
+  order: 3;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.split {
+  text-align: right;
+  padding: 2px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: space-between;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.split:nth-child(odd) {
+  background: rgba(128,128,128,0.1);
+}
+.split.current {
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#372D1C), to(#26221C), color-stop(.9,#1C1C1C));
+}
+.time {
+  flex-grow: 2;
+  width: 15%;
+}
+.seg {
+  font-size: .8em;
+  flex-grow: 2;
+  color: #ddd;
+  width: 8%;
+}
+.diff {
+  width: 8%;
+  color: white;
+  font-size: .7em;
+  flex-grow: 1;
+}
+.diff.worse {
+  color: firebrick;
+}
+.diff.better {
+  color: limegreen;
+}
+.diff.gold {
+  color: gold!important;
+}
+.diff.worse::before {
+  content: '+';
+}
+.diff.better::before {
+  content: '-';
+}
+.name {
+  width: 15%;
+  text-align: left;
+  flex-grow: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#graph {
+  order: 5;
+  flex-shrink: 0;
+  height: 200px;
+  width: 100%;
+  border-top: 1px solid #222;
+  overflow: hidden;
+}
+#bar {
+  order: 10;
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 50px;
+  border-top: 1px solid rgba(128,128,128,0.1);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
+  display: flex;
+}
+.button {
+  height: 50px;
+  text-align: center;
+  line-height: 55px;
+  flex-grow: 1;
+}
+#options {
+  order: 9;
+  flex-grow: 10000;
+  overflow: auto;
+  white-space: nowrap;
+  display: none;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 300px;
+}
+.option {
+  font-size: 0.8em;
+  text-align: right;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: space-between;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(128,128,128,0.2);
+}
+.option:hover {
+  background: rgba(128,128,128,0.1);
+}
+.variable {
+  font-family: 'Segoe UI', 'Open Sans', sans-serif;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 18px;
+  margin-right: 20px;
+}
+.value {
+  font-family: 'Input Mono', 'Segoe UI', monospace;
+  font-weight: normal;
+  flex-grow: 1;
+  line-height: 18px;
+}
+.help {
+  font-size: 0.8em;
+  font-family: 'Segoe UI', 'Open Sans', sans-serif;
+  font-weight: normal;
+  white-space: normal;
+  text-align: center;
+}
+.saveoptions {
+  width: 100%;
+  height: 30px;
+  border: 0;
+  background: rgba(0,0,0,0);
+  color: orangered;
+  font-family: 'Segoe UI', 'Open Sans', sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+}
+.flot-y-axis {
+  display: none!important;
+}
+.flot-x-axis .flot-tick-label {
+  font-size: 0.85em!important;
+}
+@media (max-height: 120px) {
+  #bar {
+    display: none!important;
+  }
+}
+::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+};
