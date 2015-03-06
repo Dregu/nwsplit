@@ -194,9 +194,9 @@ var draw = function() {
     return
   }
   if(!options.graph || $('#graph').is(':hidden')) {
-    options.graph = false;
+    options.graph = false
   }
-  if(v.state == PAUSED || splits.length == 0 || !v.time || !options.graph) {
+  if(v.state == PAUSED || splits.length == 0 || !options.graph) {
     return
   }
   v.drawinter = 0
@@ -214,17 +214,18 @@ var draw = function() {
   var x = v.time
   v.data[i] = [x, y]
   var opac = 1
+  var color = 'rgba(0,0,0,0)'
   if(v.n==0) {
     opac = v.time/splits[v.n].bestseg
     if(!v.inter) {
       opac = 1
     }
     if(v.time < splits[0].bestseg) {
-      v.colors[i] = v.segcolors[0]+opac+')'
+      color = v.segcolors[0]+opac+')'
     } else if(rnd(v.data[v.n][1]) > 0) {
-      v.colors[i] = v.segcolors[2]+opac+')'
+      color = v.segcolors[2]+opac+')'
     } else {
-      v.colors[i] = v.segcolors[1]+opac+')'
+      color = v.segcolors[1]+opac+')'
     }
   } else {
     opac = (v.time-splits[i-1].current)/splits[i].bestseg
@@ -232,21 +233,20 @@ var draw = function() {
       opac = 1
     }
     if(v.time-splits[i-1].current < splits[i].bestseg) {
-      v.colors[i] = v.segcolors[0]+opac+')'
+      color = v.segcolors[0]+opac+')'
     } else if(rnd(v.data[v.n][1]) > 0) {
-      v.colors[i] = v.segcolors[2]+opac+')'
+      color = v.segcolors[2]+opac+')'
     } else {
-      v.colors[i] = v.segcolors[1]+opac+')'
+      color = v.segcolors[1]+opac+')'
     }
   }
   if(Math.abs(v.data[i][1]) > v.max && v.data[i][1] > 0) {
     v.max = Math.abs(v.data[i][1])
   }
-  v.segments[i] = [v.lastpoint,v.data[i]]
-  /*var segments = v.startfin.concat(v.segments)
-  var colors = v.startfincolors.concat(v.colors)
-  segments.reverse()
-  colors.reverse()*/
+  if(v.time > 0) {
+    v.colors[i] = color
+    v.segments[i] = [v.lastpoint,v.data[i]]
+  }
   v.plot.getOptions().colors = v.startfincolors.concat(v.colors).reverse()
   v.plot.setData(v.startfin.concat(v.segments).reverse())
   v.plot.getOptions().xaxes[0].ticks = v.ticks
@@ -544,7 +544,7 @@ var resizeSplits = function() {
   $('#container').width($(window).width())
   if(v.plot) {
     v.plot.resize()
-    v.plot.draw()
+    draw()
   }
 }
 var updateTime = function() {
