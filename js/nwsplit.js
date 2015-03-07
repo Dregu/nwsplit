@@ -22,10 +22,12 @@ var defaults = {
   global_stop: 'Ctrl+F11',
   global_pause: 'Ctrl+F10',
   global_reset: 'Ctrl+F9',
+  global_undo: 'Ctrl+F8',
   local_split: 'F12',
   local_stop: 'F11',
   local_pause: 'F10',
   local_reset: 'F9',
+  local_undo: 'F8',
   width: 300,
   height: 500,
   x: 300,
@@ -47,6 +49,7 @@ var v = {
   stops: 0,
   plot: false
 }
+var custom = null
 function clone(obj) {
     if (null == obj || "object" != typeof obj) return obj;
     if (obj instanceof Date) {
@@ -94,10 +97,12 @@ var optionHandler = {
   global_stop: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_stop);v.shortcut_stop = new gui.Shortcut({key: o,active: function(){stop()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_stop)}},
   global_pause: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_pause);v.shortcut_pause = new gui.Shortcut({key: o,active: function(){pause()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_pause)}},
   global_reset: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_reset);v.shortcut_reset = new gui.Shortcut({key: o,active: function(){reset()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_reset)}},
+  global_undo: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_undo);v.shortcut_undo = new gui.Shortcut({key: o,active: function(){undo()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_undo)}},
   local_split: function(o){},
   local_stop: function(o){},
   local_pause: function(o){},
   local_reset: function(o){},
+  local_undo: function(i){},
   width: function(o){if(typeof win !== 'undefined'){win.width = o}},
   height: function(o){if(typeof win !== 'undefined'){win.height = o}},
   x: function(o){if(typeof win !== 'undefined'){win.x = o}},
@@ -291,10 +296,12 @@ var editOptions = function() {
     global_stop: 'Global hotkey: Stop / Save times',
     global_pause: 'Global hotkey: Pause / Unpause',
     global_reset: 'Global hotkey: Reset / Clear',
+    global_undo: 'Global hotkey: Undo split',
     local_split: 'Local hotkey: Start / Split',
     local_stop: 'Local hotkey: Stop / Save times',
     local_pause: 'Local hotkey: Pause / Unpause',
-    local_reset: 'Local hotkey: Reset / Clear'
+    local_reset: 'Local hotkey: Reset / Clear',
+    local_undo: 'Local hotkey: Undo split'
   }
   $('#options').html('')
   $('#options').append('<div class="help">Hover over a setting for help.</div><button class="saveoptions">Save settings</button>')
@@ -425,7 +432,7 @@ var addSplit = function(add) {
 }
 var saveSplits = function(all) {
   for(var i in splits) {
-    if(((i<v.n || v.n == splits.length-1) && splits[i].current > 0 && splits[i].current < splits[i].best) || splits[i].best == 0 || all) {
+    if(((i<v.n || v.n == splits.length-1) && splits[i].current > 0 && splits[i].current < splits[i].best && v.time <= splits[splits.length].best) || splits[i].best == 0 || all) {
       splits[i].best = splits[i].current
       $('.time:nth('+i+')').html(ttime(splits[i].best))
     }
@@ -523,6 +530,8 @@ var pause = function() {
     clearInterval(v.drawinter)
     v.inter = 0
     v.drawinter = 0
+  } else {
+    editOptions()
   }
   updateTime()
   save()
@@ -777,12 +786,14 @@ if(typeof process !== 'undefined') {
   gui.App.registerGlobalHotKey(v.shortcut_pause)
   v.shortcut_reset = new gui.Shortcut({key: options.global_reset,active: function(){reset()},failed: function(msg){console.log(msg)}})
   gui.App.registerGlobalHotKey(v.shortcut_reset)
+  v.shortcut_undo = new gui.Shortcut({key: options.global_undo,active: function(){undo()},failed: function(msg){console.log(msg)}})
+  gui.App.registerGlobalHotKey(v.shortcut_undo)
   var menu = new gui.Menu()
   menu.append(new gui.MenuItem({ label: 'Import splits' }))
   menu.append(new gui.MenuItem({ label: 'Export splits' }))
   menu.append(new gui.MenuItem({ type: 'separator' }))
   menu.append(new gui.MenuItem({ label: 'Start / Split' }))
-  menu.append(new gui.MenuItem({ label: 'Stop / PBs to splits' }))
+  menu.append(new gui.MenuItem({ label: 'Stop / Save times' }))
   menu.append(new gui.MenuItem({ label: 'Pause / Unpause' }))
   menu.append(new gui.MenuItem({ label: 'Reset' }))
   menu.append(new gui.MenuItem({ label: 'Clear all' }))
@@ -834,6 +845,7 @@ if(typeof process !== 'undefined') {
     var net = require('net')
     var server = net.createServer(function(stream) {
       stream.on('data', function(c) {
+        console.log('Socket says '+c.toString())
         eval(c.toString())
       })
     })
@@ -1009,19 +1021,24 @@ $(function() {
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
   variableHandler['state']()
-Object.observe(v, function(c) {
-  for(var i in c) {
-    if(variableHandler[c[i].name]) {
-      variableHandler[c[i].name]()
+  Object.observe(v, function(c) {
+    for(var i in c) {
+      if(variableHandler[c[i].name]) {
+        variableHandler[c[i].name]()
+      }
     }
-  }
-})
-Object.observe(options, function(c) {
-  for(var i in c) {
-    if(optionHandler[c[i].name]) {
-      optionHandler[c[i].name](options[c[i].name])
+  })
+  Object.observe(options, function(c) {
+    for(var i in c) {
+      if(optionHandler[c[i].name]) {
+        optionHandler[c[i].name](options[c[i].name])
+      }
     }
+    save()
+  })
+  if(typeof win !== 'undefined') {
+    win.width++
+    win.width--
   }
-  save()
-})
+  custom = $('#custom')
 })

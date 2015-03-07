@@ -1,0 +1,17 @@
+# You can bind global hotkeys in linux with sxhkd if the ones provided by nwsplit don't work.
+# https://github.com/baskerville/sxhkd
+
+ctrl + F12
+	echo "split()" | nc -U /tmp/nwsplit.sock
+
+ctrl + F11
+	echo "stop()" | nc -U /tmp/nwsplit.sock
+
+ctrl + F10
+	echo "pause()" | nc -U /tmp/nwsplit.sock
+
+ctrl + F9
+	echo "reset()" | nc -U /tmp/nwsplit.sock
+
+ctrl + F8
+	echo "undo()" | nc -U /tmp/nwsplit.sock	
