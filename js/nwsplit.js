@@ -1,18 +1,16 @@
 if(typeof process !== 'undefined') {
   var gui = require('nw.gui')
   var win = gui.Window.get()
-  var moment = require('moment')
-  require('moment-duration-format')
   var fs = require('fs')
   //win.showDevTools()
 }
 var defaults = {
   ontop: true,
   precision: 1,
-  format: 'd[d] hh:mm:ss',
-  trim: 'left',
+  trim: true,
   offset: 0,
-  interval: 33,
+  interval: 100,
+  drawinterval: 100,
   autoadd: false,
   autosave: true,
   title: 'Game title',
@@ -75,7 +73,13 @@ function clone(obj) {
 var options = clone(defaults)
 var optionHandler = {
   ontop: function(o){if(typeof win !== 'undefined'){win.setAlwaysOnTop(o)}},
-  precision: function(o){if(!v.inter){reset()}},
+  precision: function(o){
+    for(var i in splits) {
+      $('.split[data-id='+i+'] .seg').html(ttime(splits[i].bestseg))
+      $('.split[data-id='+i+'] .time').html(ttime(splits[i].bestseg))
+    }
+    v.timer.html(ttime(v.time))
+  },
   format: function(o){if(!v.inter){reset()}},
   offset: function(o){if(!v.inter){reset()}},
   interval: function(o){},
@@ -84,7 +88,7 @@ var optionHandler = {
   trim: function(o){if(!v.inter){reset()}},
   title: function(o){if(v.title) v.title.html(o)},
   attempts: function(o){if(v.attempts) v.attempts.html(o)},
-  graph: function(o){if(o){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,10*options.interval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
+  graph: function(o){if(o){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,options.drawinterval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
   toolbar: function(o){if(typeof win === 'undefined') return;if(o){$('#bar').slideDown()} else {$('#bar').slideUp()}},
   global_split: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_split);v.shortcut_split = new gui.Shortcut({key: o,active: function(){split()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_split)}},
   global_stop: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_stop);v.shortcut_stop = new gui.Shortcut({key: o,active: function(){stop()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_stop)}},
@@ -274,14 +278,12 @@ var editOptions = function() {
     ontop: 'Always on top, boolean',
     zoom: 'Zoom level, 0.1 .. 5',
     precision: 'Number of decimals, 0 .. 3',
-    format: 'Time format',
-    trim: 'Trim leading zeroes, left/right/false',
+    trim: 'Trim leading zeroes, boolean',
     interval: 'Timer update interval, ms',
+    drawinterval: 'Graph update interval, ms',
     autoadd: 'Automatically add new splits or stop on last split, boolean',
     autosave: 'Automatically save personal bests as splits',
     offset: 'Timer start offset, ms. Can be negative.',
-    /*title: 'Game title',
-    attempts: 'Number of attempts',*/
     splits: 'Number of splits to create on clear',
     graph: 'Show the split graph, boolean',
     toolbar: 'Show the toolbar, boolean',
@@ -375,7 +377,7 @@ var split = function() {
       $('#attempts').html(options.attempts)
     }
     v.inter = setInterval(updateTime, options.interval)
-    v.drawinter = setInterval(draw,10*options.interval)
+    v.drawinter = setInterval(draw,options.drawinterval)
     v.state = RUNNING
   } else {
     if(!options.autoadd && v.n >= splits.length-1) {
@@ -513,7 +515,7 @@ var pause = function() {
     v.start += pausetime
     v.state = RUNNING
     v.inter = setInterval(updateTime,options.interval)
-    v.drawinter = setInterval(draw,10*options.interval)
+    v.drawinter = setInterval(draw,options.drawinterval)
   } else if(v.state == RUNNING) {
     v.pausestart = new Date().getTime()
     v.state = PAUSED
@@ -525,12 +527,22 @@ var pause = function() {
   updateTime()
   save()
 }
-var ftime = function(ms) {
-  return moment.duration(ms).format(options.format, options.precision, {trim: options.trim}) || '0.00'
+var pad = function(num, size) {
+  var s = "0000" + num;
+  return s.substr(s.length - size);
 }
-var ttime = function(ms) {
-  var timer = moment.duration(ms).format(options.format, options.precision, {trim: options.trim}) || '0.00'
-  return '<span class="num">'+timer.split(':').join('</span><span class="col">:</span><span class="num">').replace('.','</span><span class="dot">.</span><span class="num">')+'</span>'
+var ttime = function(time) {
+  time = Math.abs(time)
+  var s = (time / 1000) % 60
+  var m = Math.floor((time / (1000 * 60)) % 60)
+  var h = Math.floor((time / (1000 * 60 * 60)) % 24)
+  var newTime = h+':'+m+':'+(s.toFixed(options.precision))
+  if(options.trim) {
+    newTime = newTime.replace(/^([0:]*(?!\.))/,'')
+  }
+  newTime = newTime.replace(/(:(?=\d(?!\d)))/g,':0')
+  newTime = newTime.replace('.','<span>.')+'</span>'
+  return newTime
 }
 var centerSplit = function() {
   resizeSplits()
@@ -567,6 +579,8 @@ var updateTime = function() {
   } else if(v.state == PAUSED) {
     v.time = v.pausestart-v.start
   }
+}
+var drawTime = function() {
   v.timer.html((v.time<0?'-':'')+ttime(v.time))
   if(v.time > 0 && splits[v.n]){
     v.diff.html(ttime(v.time-splits[v.n].best))
@@ -648,8 +662,8 @@ var importWsplit = function() {
       splits = []
       $('#splits').html('')
       while(found = reg.exec(reader.result)) {
-        var newtime = moment.duration(1000*found[2])
-        var newseg = moment.duration(1000*found[3])
+        var newtime = 1000*found[2]
+        var newseg = 1000*found[3]
         var newname = String(found[1])
         splits.push({name: newname, current: 1*newtime, best: 1*newtime, seg: 1*newseg, bestseg: 1*newseg})
         appendSplit(newname, newtime, newseg)
@@ -660,14 +674,6 @@ var importWsplit = function() {
   })
   file.click()
 }
-Object.observe(options, function(c) {
-  for(var i in c) {
-    if(optionHandler[c[i].name]) {
-      optionHandler[c[i].name](options[c[i].name])
-    }
-  }
-  save()
-})
 var stored = JSON.parse(localStorage.options || '[]')
 for(var i in stored) {
   options[i] = clone(stored[i])
@@ -676,13 +682,70 @@ var storedv = JSON.parse(localStorage.v || '[]')
 for(var i in storedv) {
   v[i] = clone(storedv[i])
 }
-Object.observe(v, function(c) {
-  for(var i in c) {
-    if(variableHandler[c[i].name]) {
-      variableHandler[c[i].name]()
+var variableHandler = {
+  state: function() {
+    if(v.state == PAUSED) {
+      $('.split:nth('+v.n+')').addClass('current')
+      v.timer.removeClass().addClass('paused')
+    } else if(v.state == RUNNING) {
+      if(!v.inter) {
+        v.inter = setInterval(updateTime,options.interval)
+      }
+      if(!v.drawinter && options.graph) {
+        v.drawinter = setInterval(draw,options.drawinterval)
+      }
+      $('.split:nth('+v.n+')').addClass('current')
+      v.timer.removeClass().addClass('running')
+      $('#buttonreset').show()
+      $('#buttonclear').hide()
+      $('#buttonadd').hide()
+      $('#buttonstop').show()
+      $('#buttonoptions').hide()
+      $('#buttonpause').show()
+      $('#buttontimes').hide()
+    } else if(v.state == STOPPED) {
+      $('.split:nth('+v.n+')').addClass('current')
+      v.timer.removeClass().addClass('stopped')
+      $('#buttonadd').hide()
+      $('#buttonstop').hide()
+      $('#buttontimes').show()
+      $('#buttonoptions').show()
+      $('#buttonpause').hide()
+    } else if(v.state == RESET) {
+      v.timer.removeClass()
+      $('#buttonreset').hide()
+      $('#buttonclear').show()
+      $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
+      $('#timer').removeClass()
+      $('.diff').removeClass('better worse gold')
+      $('.diff').html('')
+      $('.split').removeClass('current')
+      $('#buttonstop').hide()
+      $('#buttontimes').hide()
+      $('#buttonadd').show()
+      $('#buttonoptions').show()
+      $('#buttonpause').hide()
     }
+  },
+  n: function() {
+    $('.split').removeClass('current')
+    $('.split:nth('+v.n+')').addClass('current')
+    v.diff = $('.diff:nth('+v.n+')')
+    updateStaticSegments()
+  },
+  time: function() {
+    if(v.time > 0 && splits[v.n]) {
+      if(v.time < splits[v.n].best) {
+        v.timer.removeClass('worse').addClass('better')
+      } else if(v.time > splits[v.n].best) {
+        v.timer.removeClass('better').addClass('worse')
+      } else {
+        v.timer.removeClass('better worse')
+      }
+    }
+    drawTime()
   }
-})
+}
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
 if(splits.length == 0 && options.splits > 0) {
   for(var i = 0; i < options.splits; i++) {
@@ -784,69 +847,6 @@ if(typeof process !== 'undefined') {
     save()
     this.close(true)
   })
-}
-var variableHandler = {
-  state: function() {
-    if(v.state == PAUSED) {
-      $('.split:nth('+v.n+')').addClass('current')
-      v.timer.removeClass().addClass('paused')
-    } else if(v.state == RUNNING) {
-      if(!v.inter) {
-        v.inter = setInterval(updateTime,options.interval)
-      }
-      if(!v.drawinter && options.graph) {
-        v.drawinter = setInterval(draw,10*options.interval)
-      }
-      $('.split:nth('+v.n+')').addClass('current')
-      v.timer.removeClass().addClass('running')
-      $('#buttonreset').show()
-      $('#buttonclear').hide()
-      $('#buttonadd').hide()
-      $('#buttonstop').show()
-      $('#buttonoptions').hide()
-      $('#buttonpause').show()
-      $('#buttontimes').hide()
-    } else if(v.state == STOPPED) {
-      $('.split:nth('+v.n+')').addClass('current')
-      v.timer.removeClass().addClass('stopped')
-      $('#buttonadd').hide()
-      $('#buttonstop').hide()
-      $('#buttontimes').show()
-      $('#buttonoptions').show()
-      $('#buttonpause').hide()
-    } else if(v.state == RESET) {
-      v.timer.removeClass()
-      $('#buttonreset').hide()
-      $('#buttonclear').show()
-      $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
-      $('#timer').removeClass()
-      $('.diff').removeClass('better worse gold')
-      $('.diff').html('')
-      $('.split').removeClass('current')
-      $('#buttonstop').hide()
-      $('#buttontimes').hide()
-      $('#buttonadd').show()
-      $('#buttonoptions').show()
-      $('#buttonpause').hide()
-    }
-  },
-  n: function() {
-    $('.split').removeClass('current')
-    $('.split:nth('+v.n+')').addClass('current')
-    v.diff = $('.diff:nth('+v.n+')')
-    updateStaticSegments()
-  },
-  time: function() {
-    if(v.time > 0 && splits[v.n]) {
-      if(v.time < splits[v.n].best) {
-        v.timer.removeClass('worse').addClass('better')
-      } else if(v.time > splits[v.n].best) {
-        v.timer.removeClass('better').addClass('worse')
-      } else {
-        v.timer.removeClass('better worse')
-      }
-    }
-  }
 }
 var buttonHandler = {
   buttonsave: function(){ exportWsplit() },
@@ -1009,4 +1009,19 @@ $(function() {
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
   variableHandler['state']()
+Object.observe(v, function(c) {
+  for(var i in c) {
+    if(variableHandler[c[i].name]) {
+      variableHandler[c[i].name]()
+    }
+  }
+})
+Object.observe(options, function(c) {
+  for(var i in c) {
+    if(optionHandler[c[i].name]) {
+      optionHandler[c[i].name](options[c[i].name])
+    }
+  }
+  save()
+})
 })
