@@ -51,7 +51,7 @@ body {
   text-shadow: 0 0 6px orangered;
   color: orangered;
 }
-.dot, .num:last-child {
+#timer span, .diff span, .seg span, .time span {
   font-size: .7em;
 }
 #titlerow {
