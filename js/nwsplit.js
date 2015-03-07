@@ -76,7 +76,7 @@ var optionHandler = {
   precision: function(o){
     for(var i in splits) {
       $('.split[data-id='+i+'] .seg').html(ttime(splits[i].bestseg))
-      $('.split[data-id='+i+'] .time').html(ttime(splits[i].bestseg))
+      $('.split[data-id='+i+'] .time').html(ttime(splits[i].best))
     }
     v.timer.html(ttime(v.time))
   },
