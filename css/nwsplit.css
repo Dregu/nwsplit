@@ -160,6 +160,12 @@ body {
   line-height: 55px;
   flex-grow: 1;
 }
+#custom {
+  padding: 2px;
+  order: 2;
+  flex-shrink: 0;
+  color: orangered;
+}
 #options {
   order: 9;
   flex-grow: 10000;
