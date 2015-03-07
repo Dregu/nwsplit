@@ -8,11 +8,11 @@ if(typeof process !== 'undefined') {
 }
 var defaults = {
   ontop: true,
-  precision: 2,
+  precision: 1,
   format: 'd[d] hh:mm:ss',
   trim: 'left',
   offset: 0,
-  interval: 20,
+  interval: 33,
   autoadd: false,
   autosave: true,
   title: 'Game title',
@@ -24,12 +24,12 @@ var defaults = {
   global_stop: 'Ctrl+F11',
   global_pause: 'Ctrl+F10',
   global_reset: 'Ctrl+F9',
-  local_split: 123,
-  local_stop: 122,
-  local_pause: 121,
-  local_reset: 120,
+  local_split: 'F12',
+  local_stop: 'F11',
+  local_pause: 'F10',
+  local_reset: 'F9',
   width: 300,
-  height: 300,
+  height: 500,
   x: 300,
   y: 300,
   zoom: 1,
@@ -41,8 +41,7 @@ var v = {
   drawinter: 0,
   n: 0,
   time: 0,
-  state: -1,
-  pausetime: 0,
+  state: RESET,
   pausestart: 0,
   start: 0,
   stop: 0,
@@ -85,7 +84,7 @@ var optionHandler = {
   trim: function(o){if(!v.inter){reset()}},
   title: function(o){if(v.title) v.title.html(o)},
   attempts: function(o){if(v.attempts) v.attempts.html(o)},
-  graph: function(o){if(o){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,10*options.interval)})} else {$('#graph').slideUp()}},
+  graph: function(o){if(o){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,10*options.interval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
   toolbar: function(o){if(typeof win === 'undefined') return;if(o){$('#bar').slideDown()} else {$('#bar').slideUp()}},
   global_split: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_split);v.shortcut_split = new gui.Shortcut({key: o,active: function(){split()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_split)}},
   global_stop: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_stop);v.shortcut_stop = new gui.Shortcut({key: o,active: function(){stop()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_stop)}},
@@ -102,6 +101,8 @@ var optionHandler = {
   zoom: function(o){if(typeof win !== 'undefined'){if(!isNaN(Math.log(options.zoom)/Math.log(1.2))){win.zoomLevel = Math.log(options.zoom)/Math.log(1.2)}}},
   css: function(o){$('style').html(o)}
 }
+var keymap = {backspace:8,command:91,tab:9,clear:12,enter:13,shift:16,ctrl:17,alt:18,capslock:20,escape:27,esc:27,space:32,pageup:33,pgup:33,pagedown:34,pgdn:34,end:35,home:36,left:37,up:38,right:39,down:40,del:46,comma:188,f1:112,f2:113,f3:114,f4:115,f5:116,f6:117,f7:118,f8:119,f9:120,f10:121,f11:122,f12:123,',':188,'.':190,'/':191,'`':192,'-':189,'=':187,';':186,'[':219,'\\':220,']':221,'\'':222}
+var key = function(name){return keymap[String(name).toLowerCase()]||String(name).toUpperCase().charCodeAt(0)}
 var getCss = function() {
   var file = document.createElement('input')
   file.setAttribute('type', 'file')
@@ -124,7 +125,7 @@ var plotopt = {
     shadowSize: 0
   },
   legend: { show: false },
-  xaxis: { show: true, tickColor: '#222', color: '#333', tickFormatter: function(t){return ftime(t)} },
+  xaxis: { show: true, tickColor: '#222', color: '#333', tickFormatter: function(t){return ttime(t)} },
   yaxis: { show: true, ticks: [0], tickColor: '#222', color: 'rgba(0,0,0,0)' },
   grid: {
     show: true,
@@ -199,7 +200,6 @@ var draw = function() {
   if(v.state == PAUSED || splits.length == 0 || !options.graph) {
     return
   }
-  v.drawinter = 0
   if(!v.data || v.n>v.data.length) {
     updateStaticSegments()
   }
@@ -271,28 +271,28 @@ var editOptions = function() {
     return
   }
   var help = {
-    ontop: 'Always on top, true/false',
-    zoom: 'Zoom level, 0.1-5',
-    precision: 'Number of decimals in last token, 0..3',
-    format: 'Time format, moment-duration-format',
+    ontop: 'Always on top, boolean',
+    zoom: 'Zoom level, 0.1 .. 5',
+    precision: 'Number of decimals, 0 .. 3',
+    format: 'Time format',
     trim: 'Trim leading zeroes, left/right/false',
     interval: 'Timer update interval, ms',
-    autoadd: 'Autoadd new splits with split or stop on last split, true/false',
-    autosave: 'Autosave personal bests as splits',
-    offset: 'Timer start offset, ms',
-    title: 'Game title',
-    attempts: 'Number of attempts',
-    splits: 'Number of splits to create when clearing all',
-    graph: 'Show the split graph',
-    toolbar: 'Show the toolbar (can\'t hide this in browser)',
-    global_split: 'Global hotkey: Start/Split',
-    global_stop: 'Global hotkey: Stop/PB->Splits',
-    global_pause: 'Global hotkey: Pause/Unpause',
-    global_reset: 'Global hotkey: Reset/Clear',
-    local_split: 'Local hotkey: Start/Split, keycode',
-    local_stop: 'Local hotkey: Stop/PB->Splits, keycode',
-    local_pause: 'Local hotkey: Pause/Unpause, keycode',
-    local_reset: 'Local hotkey: Reset/Clear, keycode'
+    autoadd: 'Automatically add new splits or stop on last split, boolean',
+    autosave: 'Automatically save personal bests as splits',
+    offset: 'Timer start offset, ms. Can be negative.',
+    /*title: 'Game title',
+    attempts: 'Number of attempts',*/
+    splits: 'Number of splits to create on clear',
+    graph: 'Show the split graph, boolean',
+    toolbar: 'Show the toolbar, boolean',
+    global_split: 'Global hotkey: Start / Split',
+    global_stop: 'Global hotkey: Stop / Save times',
+    global_pause: 'Global hotkey: Pause / Unpause',
+    global_reset: 'Global hotkey: Reset / Clear',
+    local_split: 'Local hotkey: Start / Split',
+    local_stop: 'Local hotkey: Stop / Save times',
+    local_pause: 'Local hotkey: Pause / Unpause',
+    local_reset: 'Local hotkey: Reset / Clear'
   }
   $('#options').html('')
   $('#options').append('<div class="help">Hover over a setting for help.</div><button class="saveoptions">Save settings</button>')
@@ -347,6 +347,12 @@ var save = function() {
     options.y = win.y
   }
   localStorage.options = JSON.stringify(options)
+  var savev = {}
+  var savedvars = ['n','time','state','pausestart','start','stop']
+  for(var i in savedvars) {
+    savev[savedvars[i]] = v[savedvars[i]]
+  }
+  localStorage.v = JSON.stringify(savev)
 }
 var undo = function() {
   if(!v.inter && v.time) {
@@ -371,7 +377,6 @@ var split = function() {
     v.inter = setInterval(updateTime, options.interval)
     v.drawinter = setInterval(draw,10*options.interval)
     v.state = RUNNING
-    $('.split:nth('+v.n+')').addClass('current')
   } else {
     if(!options.autoadd && v.n >= splits.length-1) {
       addSplit()
@@ -383,6 +388,7 @@ var split = function() {
   }
   updateStaticSegments()
   centerSplit()
+  save()
 }
 var addSplit = function(add) {
   if(add) {
@@ -419,11 +425,11 @@ var saveSplits = function(all) {
   for(var i in splits) {
     if(((i<v.n || v.n == splits.length-1) && splits[i].current > 0 && splits[i].current < splits[i].best) || splits[i].best == 0 || all) {
       splits[i].best = splits[i].current
-      $('.time:nth('+i+')').html(ftime(splits[i].best))
+      $('.time:nth('+i+')').html(ttime(splits[i].best))
     }
     if(((i<v.n || v.n == splits.length-1) && splits[i].seg > 0 && splits[i].seg < splits[i].bestseg) || splits[i].bestseg == 0 || all) {
       splits[i].bestseg = splits[i].seg
-      $('.seg:nth('+i+')').html(ftime(splits[i].bestseg))
+      $('.seg:nth('+i+')').html(ttime(splits[i].bestseg))
     }
   }
   updateStaticSegments()
@@ -438,7 +444,6 @@ var stop = function() {
     clearInterval(v.inter)
     clearInterval(v.drawinter)
     v.inter = 0
-    v.pausetime = 0
     addSplit()
   } else if(v.state == PAUSED) {
     v.state = STOPPED
@@ -447,7 +452,6 @@ var stop = function() {
     clearInterval(v.inter)
     clearInterval(v.drawinter)
     v.inter = 0
-    v.pausetime = 0
     addSplit()
   }
   if((v.inter == 0 || options.autosave) && (v.n >= splits.length-1) || (v.stops > 5)) {
@@ -497,7 +501,6 @@ var reset = function() {
   v.inter = 0
   v.n = 0
   v.time = 0
-  v.pausetime = 0
   v.state = RESET
   centerSplit()
   updateStaticSegments()
@@ -506,14 +509,21 @@ var reset = function() {
 }
 var pause = function() {
   if(v.state == PAUSED) {
-    v.pausetime = new Date().getTime()-v.pausestart
-    v.start += v.pausetime
+    var pausetime = new Date().getTime()-v.pausestart
+    v.start += pausetime
     v.state = RUNNING
+    v.inter = setInterval(updateTime,options.interval)
+    v.drawinter = setInterval(draw,10*options.interval)
   } else if(v.state == RUNNING) {
     v.pausestart = new Date().getTime()
     v.state = PAUSED
+    clearInterval(v.inter)
+    clearInterval(v.drawinter)
+    v.inter = 0
+    v.drawinter = 0
   }
   updateTime()
+  save()
 }
 var ftime = function(ms) {
   return moment.duration(ms).format(options.format, options.precision, {trim: options.trim}) || '0.00'
@@ -559,7 +569,7 @@ var updateTime = function() {
   }
   v.timer.html((v.time<0?'-':'')+ttime(v.time))
   if(v.time > 0 && splits[v.n]){
-    v.diff.html(ftime(v.time-splits[v.n].best))
+    v.diff.html(ttime(v.time-splits[v.n].best))
     if(rnd(v.time) > rnd(splits[v.n].best)) {
       v.diff.removeClass('better').addClass('worse')
     } else {
@@ -578,7 +588,7 @@ var updateTime = function() {
 }
 var appendSplit = function(myname, mytime, myseg) {
   var id = $('.split').length
-  $('#splits').append('<div class="split" data-id="'+id+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="seg" contenteditable="true">'+ftime(myseg)+'</span><span class="time" contenteditable="true">'+ftime(mytime)+'</span></div>')
+  $('#splits').append('<div class="split" data-id="'+id+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="seg" contenteditable="true">'+ttime(myseg)+'</span><span class="time" contenteditable="true">'+ttime(mytime)+'</span></div>')
   $('#buttonload').hide()
   $('#buttonsave').show()
   v.diff = $('.diff:nth('+v.n+')')
@@ -604,13 +614,11 @@ var exportWsplit = function() {
   }
   data += 'Icons='+Array(splits.length).join('"",')+'""'
   if(typeof fs !== 'undefined') {
-    var file = document.createElement('input')
-    file.setAttribute('type', 'file')
-    file.setAttribute('nwsaveas', options.title+'.wsplit')
-    file.onchange = function() {
+    var file = $('<input type="file" accept=".wsplit" nwsaveas="'+options.title+'">')
+    file.change(function() {
       var path = this.files[0].path
       fs.writeFile(path, data)
-    }
+    })
     file.click()
   } else {
     var ex = document.createElement('a')
@@ -620,15 +628,13 @@ var exportWsplit = function() {
   }
 }
 var importWsplit = function() {
-  var file = document.createElement('input')
-  file.setAttribute('type', 'file')
-  file.setAttribute('accept', '.wsplit')
-  file.onchange = function() {
+  var file = $('<input type="file" accept=".wsplit">')
+  file.change(function() {
     var reader = new FileReader()
     reader.onloadend = function() {
       var metareg = false
       var reg = false
-      if(file.files[0].name.match(/\.wsplit$/)) {
+      if(file[0].files[0].name.match(/\.wsplit$/)) {
         metareg = /Title=(.*)$[^]*?(Attempts=(.*?)$)/gm
         reg = /^(.*),[\d\.]*,([\d\.]*),([\d\.]*)$/gm
       } else {
@@ -651,7 +657,7 @@ var importWsplit = function() {
       save()
     }
     reader.readAsText(this.files[0])
-  }
+  })
   file.click()
 }
 Object.observe(options, function(c) {
@@ -666,6 +672,17 @@ var stored = JSON.parse(localStorage.options || '[]')
 for(var i in stored) {
   options[i] = clone(stored[i])
 }
+var storedv = JSON.parse(localStorage.v || '[]')
+for(var i in storedv) {
+  v[i] = clone(storedv[i])
+}
+Object.observe(v, function(c) {
+  for(var i in c) {
+    if(variableHandler[c[i].name]) {
+      variableHandler[c[i].name]()
+    }
+  }
+})
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
 if(splits.length == 0 && options.splits > 0) {
   for(var i = 0; i < options.splits; i++) {
@@ -771,8 +788,16 @@ if(typeof process !== 'undefined') {
 var variableHandler = {
   state: function() {
     if(v.state == PAUSED) {
+      $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('paused')
     } else if(v.state == RUNNING) {
+      if(!v.inter) {
+        v.inter = setInterval(updateTime,options.interval)
+      }
+      if(!v.drawinter && options.graph) {
+        v.drawinter = setInterval(draw,10*options.interval)
+      }
+      $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('running')
       $('#buttonreset').show()
       $('#buttonclear').hide()
@@ -782,6 +807,7 @@ var variableHandler = {
       $('#buttonpause').show()
       $('#buttontimes').hide()
     } else if(v.state == STOPPED) {
+      $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('stopped')
       $('#buttonadd').hide()
       $('#buttonstop').hide()
@@ -822,13 +848,6 @@ var variableHandler = {
     }
   }
 }
-Object.observe(v, function(c) {
-  for(var i in c) {
-    if(variableHandler[c[i].name]) {
-      variableHandler[c[i].name]()
-    }
-  }
-})
 var buttonHandler = {
   buttonsave: function(){ exportWsplit() },
   buttonload: function(){ importWsplit() },
@@ -842,7 +861,6 @@ var buttonHandler = {
   buttonsplit: function(){ split() }
 }
 $(function() {
-  reset()
   v.timer = $('#timer')
   v.title = $('#title')
   v.attempts = $('#attempts')
@@ -860,16 +878,19 @@ $(function() {
     centerSplit()
   })
   $(window).keydown(function(e) {
-    if(e.which == options.local_split) {
+    if($(e.target).attr('contenteditable') == 'true') {
+      return
+    }
+    if(e.which == key(options.local_split)) {
       e.preventDefault()
       split()
-    } else if(e.which == options.local_stop) {
+    } else if(e.which == key(options.local_stop)) {
       e.preventDefault()
       stop()
-    } else if(e.which == options.local_reset) {
+    } else if(e.which == key(options.local_reset)) {
       e.preventDefault()
       reset()
-    } else if(e.which == options.local_pause) {
+    } else if(e.which == key(options.local_pause)) {
       e.preventDefault()
       pause()
     }
@@ -903,7 +924,7 @@ $(function() {
     }
     var val = 1000*$(this).html()
     splits[id].best = val
-    $(this).html(ftime(val))
+    $(this).html(ttime(val))
     save()
   })
   $('#container').on('focus', '.seg', function(e) {
@@ -921,7 +942,7 @@ $(function() {
     }
     var val = 1000*$(this).html()
     splits[id].bestseg = val
-    $(this).html(ftime(val))
+    $(this).html(ttime(val))
     save()
   })
   $('#container').on('blur', '.name', function(e) {
@@ -987,4 +1008,5 @@ $(function() {
   })
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
+  variableHandler['state']()
 })
