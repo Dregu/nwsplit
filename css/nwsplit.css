@@ -103,7 +103,7 @@ body {
   width: 15%;
 }
 .seg {
-  font-size: .8em;
+  font-size: .9em;
   flex-grow: 2;
   color: #ddd;
   width: 8%;
@@ -111,7 +111,7 @@ body {
 .diff {
   width: 8%;
   color: white;
-  font-size: .7em;
+  font-size: .8em;
   flex-grow: 1;
 }
 .diff.worse {
@@ -220,6 +220,12 @@ body {
 }
 .flot-x-axis .flot-tick-label {
   font-size: 0.85em!important;
+}
+#buttonsave, #buttonreset, #buttonpause, #buttonstop, #buttontimes {
+  display: none;
+}
+.hide {
+  display: none;
 }
 @media (max-height: 120px) {
   #bar {

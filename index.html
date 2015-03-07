@@ -22,7 +22,7 @@
   <div id='splits'></div>
   <div id='timer'></div>
   <div id='graph'></div>
-  <div id='bar' class='stopped'>
+  <div id='bar'>
     <div class='button' id='buttonsave' title='Save splits as .wsplit'><i class='fa fa-2x fa-fw fa-floppy-o'></i></div>
     <div class='button' id='buttonload' title='Load splits from .wsplit'><i class='fa fa-2x fa-fw fa-folder-open'></i></div>
     <div class='button' id='buttonreset' title='Reset'><i class='fa fa-2x fa-fw fa-power-off'></i></div>
@@ -35,6 +35,7 @@
     <div class='button' id='buttonsplit' title='Start / Split'><i class='fa fa-2x fa-fw fa-play'></i></div>
   </div>
 </div>
+<div class='hide'><input type='file' accept='.wsplit' id='file'></div>
 <script src='js/jquery-2.1.3.min.js'></script>
 <script src='js/jquery.flot.js'></script>
 <script src='node_modules/moment/moment.js'></script>
