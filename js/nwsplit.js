@@ -18,15 +18,16 @@ var defaults = {
   splits: 0,
   graph: true,
   toolbar: true,
+  history: 10,
   global_split: 'Ctrl+F12',
   global_stop: 'Ctrl+F11',
-  global_pause: 'Ctrl+F10',
-  global_reset: 'Ctrl+F9',
+  global_reset: 'Ctrl+F10',
+  global_pause: 'Ctrl+F9',
   global_undo: 'Ctrl+F8',
   local_split: 'F12',
   local_stop: 'F11',
-  local_pause: 'F10',
-  local_reset: 'F9',
+  local_reset: 'F10',
+  local_pause: 'F9',
   local_undo: 'F8',
   width: 300,
   height: 500,
@@ -47,7 +48,8 @@ var v = {
   stop: 0,
   resets: 0,
   stops: 0,
-  plot: false
+  plot: false,
+  history: []
 }
 var custom = null
 function clone(obj) {
@@ -286,22 +288,22 @@ var editOptions = function() {
     trim: 'Trim leading zeroes, boolean',
     interval: 'Timer update interval, ms',
     drawinterval: 'Graph update interval, ms',
-    autoadd: 'Automatically add new splits or stop on last split, boolean',
-    autosave: 'Automatically save personal bests as splits',
-    offset: 'Timer start offset, ms. Can be negative.',
-    splits: 'Number of splits to create on clear',
-    graph: 'Show the split graph, boolean',
+    autoadd: 'Automatically add new splits, boolean',
+    autosave: 'Automatically save personal best and best segments on reset',
+    offset: 'Timer start offset, ms',
+    splits: 'Number of empty splits to create by default',
+    graph: 'Show the graph, boolean',
     toolbar: 'Show the toolbar, boolean',
     global_split: 'Global hotkey: Start / Split',
     global_stop: 'Global hotkey: Stop / Save times',
-    global_pause: 'Global hotkey: Pause / Unpause',
-    global_reset: 'Global hotkey: Reset / Clear',
-    global_undo: 'Global hotkey: Undo split',
+    global_reset: 'Global hotkey: Reset / Clear (hold)',
+    global_pause: 'Global hotkey: Pause / Options',
+    global_undo: 'Global hotkey: Undo / Import / Export',
     local_split: 'Local hotkey: Start / Split',
     local_stop: 'Local hotkey: Stop / Save times',
-    local_pause: 'Local hotkey: Pause / Unpause',
-    local_reset: 'Local hotkey: Reset / Clear',
-    local_undo: 'Local hotkey: Undo split'
+    local_reset: 'Local hotkey: Reset / Clear (hold)',
+    local_pause: 'Local hotkey: Pause / Options',
+    local_undo: 'Local hotkey: Undo / Import / Export'
   }
   $('#options').html('')
   $('#options').append('<div class="help">Hover over a setting for help.</div><button class="saveoptions">Save settings</button>')
@@ -357,36 +359,40 @@ var save = function() {
   }
   localStorage.options = JSON.stringify(options)
   var savev = {}
-  var savedvars = ['n','time','state','pausestart','start','stop']
+  var savedvars = ['n','time','state','pausestart','start','stop','history']
   for(var i in savedvars) {
     savev[savedvars[i]] = v[savedvars[i]]
   }
   localStorage.v = JSON.stringify(savev)
 }
 var undo = function() {
-  if(!v.inter && v.time) {
-    split()
-  } else if(v.n>0) {
+  if(v.state == STOPPED) {
+    v.inter = setInterval(updateTime, options.interval)
+    v.drawinter = setInterval(draw,options.drawinterval)
+    v.state = RUNNING
+  } else if((v.state == RUNNING || v.state == PAUSED) && v.n>0) {
     $('.split:nth('+v.n+') .diff').html('').removeClass('better worse')
     v.n--
+  } else if(v.state == RESET) {
+    if(splits.length > 0) {
+      exportWsplit()
+    } else {
+      importWsplit()
+    }
   }
 }
 var split = function() {
   if(v.state == PAUSED) {
     pause()
     return
-  }
-  if(!v.inter) {
-    if(!v.time) {
-      v.start = new Date().getTime()-options.offset
-      v.n=0
-      options.attempts++
-      $('#attempts').html(options.attempts)
-    }
+  } else if(v.state == RESET) {
+    v.start = new Date().getTime()-options.offset
+    v.n=0
+    options.attempts++
     v.inter = setInterval(updateTime, options.interval)
     v.drawinter = setInterval(draw,options.drawinterval)
     v.state = RUNNING
-  } else {
+  } else if(v.state == RUNNING) {
     if(!options.autoadd && v.n >= splits.length-1) {
       addSplit()
       stop()
@@ -394,6 +400,8 @@ var split = function() {
     } else {
       addSplit()
     }
+  } else if(v.state == STOPPED) {
+    reset()
   }
   updateStaticSegments()
   centerSplit()
@@ -431,14 +439,24 @@ var addSplit = function(add) {
   updateStaticSegments()
 }
 var saveSplits = function(all) {
+  var old = clone(splits)
+  var changes = false
   for(var i in splits) {
-    if(((i<v.n || v.n == splits.length-1) && splits[i].current > 0 && splits[i].current < splits[i].best && v.time <= splits[splits.length].best) || splits[i].best == 0 || all) {
+    if(((/*i<v.n || */v.n == splits.length-1) && splits[i].current > 0 && splits[i].current < splits[i].best && v.time <= splits[splits.length-1].best) || splits[i].best == 0 || all) {
       splits[i].best = splits[i].current
       $('.time:nth('+i+')').html(ttime(splits[i].best))
+      changes = true
     }
     if(((i<v.n || v.n == splits.length-1) && splits[i].seg > 0 && splits[i].seg < splits[i].bestseg) || splits[i].bestseg == 0 || all) {
       splits[i].bestseg = splits[i].seg
       $('.seg:nth('+i+')').html(ttime(splits[i].bestseg))
+      changes = true
+    }
+  }
+  if(changes) {
+    v.history.push(old)
+    if(v.history.length > options.history) {
+      v.history.shift()
     }
   }
   updateStaticSegments()
@@ -462,8 +480,7 @@ var stop = function() {
     clearInterval(v.drawinter)
     v.inter = 0
     addSplit()
-  }
-  if((v.inter == 0 || options.autosave) && (v.n >= splits.length-1) || (v.stops > 5)) {
+  } else if(v.state == STOPPED) {
     saveSplits(v.stops > 5 && v.n >= splits.length-1)
   }
   if(v.stops == 0) {
@@ -502,6 +519,9 @@ var reset = function() {
   }
   if(v.resets == 0) {
     setTimeout(function(){v.resets = 0},700)
+  }
+  if(options.autosave) {
+    saveSplits()
   }
   v.resets++
   clearInterval(v.inter)
@@ -705,35 +725,27 @@ var variableHandler = {
       }
       $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('running')
-      $('#buttonreset').show()
-      $('#buttonclear').hide()
-      $('#buttonadd').hide()
-      $('#buttonstop').show()
-      $('#buttonoptions').hide()
-      $('#buttonpause').show()
-      $('#buttontimes').hide()
+      $('#buttonreset, #buttonstop, #buttonpause, #buttonundo').show()
+      $('#buttonclear, #buttonadd, #buttonoptions, #buttontimes, #buttonsave, #buttonload').hide()
     } else if(v.state == STOPPED) {
       $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('stopped')
-      $('#buttonadd').hide()
-      $('#buttonstop').hide()
-      $('#buttontimes').show()
-      $('#buttonoptions').show()
-      $('#buttonpause').hide()
+      $('#buttonadd, #buttonstop, #buttonpause, #buttonsave, #buttonload').hide()
+      $('#buttontimes, #buttonoptions').show()
     } else if(v.state == RESET) {
       v.timer.removeClass()
-      $('#buttonreset').hide()
-      $('#buttonclear').show()
       $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
       $('#timer').removeClass()
       $('.diff').removeClass('better worse gold')
       $('.diff').html('')
       $('.split').removeClass('current')
-      $('#buttonstop').hide()
-      $('#buttontimes').hide()
-      $('#buttonadd').show()
-      $('#buttonoptions').show()
-      $('#buttonpause').hide()
+      $('#buttonreset, #buttonstop, #buttonpause, #buttontimes, #buttonpause, #buttonundo').hide()
+      $('#buttonclear, #buttonadd, #buttonoptions').show()
+      if(splits.length > 0) {
+        $('#buttonsave').show()
+      } else {
+        $('#buttonload').show()
+      }
     }
   },
   n: function() {
@@ -752,7 +764,7 @@ var variableHandler = {
         v.timer.removeClass('better worse')
       }
     }
-    drawTime()
+    if(v.state == RUNNING) drawTime()
   }
 }
 var splits = (localStorage.splits?JSON.parse(localStorage.splits):[])
@@ -905,6 +917,9 @@ $(function() {
     } else if(e.which == key(options.local_pause)) {
       e.preventDefault()
       pause()
+    } else if(e.which == key(options.local_undo)) {
+      e.preventDefault()
+      undo()
     }
   })
   $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
@@ -1037,8 +1052,7 @@ $(function() {
     save()
   })
   if(typeof win !== 'undefined') {
-    win.width++
-    win.width--
+    setTimeout(function() { win.width++; win.width-- }, 100)
   }
   custom = $('#custom')
 })
