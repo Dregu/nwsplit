@@ -8,10 +8,10 @@ ctrl + F11
 	echo "stop()" | nc -U /tmp/nwsplit.sock
 
 ctrl + F10
-	echo "pause()" | nc -U /tmp/nwsplit.sock
+	echo "reset()" | nc -U /tmp/nwsplit.sock
 
 ctrl + F9
-	echo "reset()" | nc -U /tmp/nwsplit.sock
+	echo "pause()" | nc -U /tmp/nwsplit.sock
 
 ctrl + F8
 	echo "undo()" | nc -U /tmp/nwsplit.sock	
