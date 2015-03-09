@@ -18,6 +18,8 @@ var defaults = {
   splits: 0,
   graph: true,
   toolbar: true,
+  iconsize: '32',
+  icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAZiS0dEAAAAAAAA+UO7fwAAASRJREFUWIXlls0OwiAQhD+Mifaiz9gn6zPqpfa0HqARkP+qNHFODd1dprMDW/h3qA258olahw0EPoIW1gIgAixm5QTqVamq5rGBgMYC3M3zpblK/xZ0J1DTL7f3NytbgCtNXqj3wLr51VsPrX2FAHojdXaX5JHNCt4b3T1QosB772NS34wS2gvOF0/TxDzPAAzDwDiOAjUKrOc+ZS1lYpZETCAlB63AA+fiCXog/N4+K297d/dAioAAIuJ9XQnuOkfkVcd6q7CUzytg3/k1KPRC+zCqR9Bv3T0QYuWe+5j8/ghOxSVmRFyB1t77yHihzQO5e6ACu/JAfN77WOe/jZL4gBfiBL6BEgI/xD5mQfk0NPok/vlK4xx0V6AG/lTbGgfsQIEnrwNkcZmOLQwAAAAASUVORK5CYII=',
   history: 10,
   global_split: 'Ctrl+F12',
   global_stop: 'Ctrl+F11',
@@ -75,26 +77,52 @@ function clone(obj) {
     }
     throw new Error("Unable to copy obj! Its type isn't supported.");
 }
+var parseBool = function(bool) {
+  if(bool == 'false' || bool == 0 || bool == '0') {
+    return false
+  }
+  return true
+}
 var options = clone(defaults)
 var optionHandler = {
-  ontop: function(o){if(typeof win !== 'undefined'){win.setAlwaysOnTop(o)}},
+  ontop: function(o){options.ontop = parseBool(o); if(typeof win !== 'undefined'){win.setAlwaysOnTop(options.ontop)}},
   precision: function(o){
+    options.precision = parseInt(options.precision) || 1
+    if(options.precision < 0 || options.precision > 3) { options.precision = 1 }
     for(var i in splits) {
       $('.split[data-id='+i+'] .seg').html(ttime(splits[i].bestseg))
       $('.split[data-id='+i+'] .time').html(ttime(splits[i].best))
     }
     v.timer.html(ttime(v.time))
   },
-  format: function(o){if(!v.inter){reset()}},
-  offset: function(o){if(!v.inter){reset()}},
-  interval: function(o){},
-  autoadd: function(o){},
-  autosave: function(o){},
-  trim: function(o){if(!v.inter){reset()}},
+  offset: function(o){
+    options.offset = parseInt(options.offset) || 0
+    if(v.state == RESET){ $('#timer').html(ttime(options.offset)) }
+  },
+  splits: function(o){options.splits = parseInt(options.splits) || 0},
+  interval: function(o){options.interval = parseInt(options.interval) || 100},
+  drawinterval: function(o){options.drawinterval = parseInt(options.drawinterval) || 100},
+  autoadd: function(o){ options.autoadd = parseBool(o) },
+  autosave: function(o){ options.autosave = parseBool(o) },
+  trim: function(o){
+    options.trim = parseBool(o)
+    if(v.state == RESET){ $('#timer').html(ttime(options.offset)) }
+  },
   title: function(o){if(v.title) v.title.html(o)},
-  attempts: function(o){if(v.attempts) v.attempts.html(o)},
-  graph: function(o){if(o){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,options.drawinterval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
-  toolbar: function(o){if(typeof win === 'undefined') return;if(o){$('#bar').slideDown()} else {$('#bar').slideUp()}},
+  attempts: function(o){
+    options.attempts = parseInt(o) || 0
+    if(v.attempts) v.attempts.html(o)
+  },
+  graph: function(o){options.graph = parseBool(o); if(options.graph){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,options.drawinterval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
+  toolbar: function(o){options.toolbar = parseBool(o); if(typeof win === 'undefined') return;if(options.toolbar){$('#bar').slideDown()} else {$('#bar').slideUp()}},
+  iconsize: function(o){
+    $('.icon').height(options.iconsize).width(options.iconsize);
+    if(options.iconsize > 16) {
+      $('.name,.seg,.time').css('line-height', options.iconsize+'px').css('height', options.iconsize+'px')
+    } else {
+      $('.name,.seg,.time').css('line-height', '16px').css('height', 'auto')
+    }
+  },
   global_split: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_split);v.shortcut_split = new gui.Shortcut({key: o,active: function(){split()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_split)}},
   global_stop: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_stop);v.shortcut_stop = new gui.Shortcut({key: o,active: function(){stop()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_stop)}},
   global_pause: function(o){if(typeof gui !== 'undefined'){gui.App.unregisterGlobalHotKey(v.shortcut_pause);v.shortcut_pause = new gui.Shortcut({key: o,active: function(){pause()},failed: function(msg){console.log(msg)}});gui.App.registerGlobalHotKey(v.shortcut_pause)}},
@@ -109,23 +137,40 @@ var optionHandler = {
   height: function(o){if(typeof win !== 'undefined'){win.height = o}},
   x: function(o){if(typeof win !== 'undefined'){win.x = o}},
   y: function(o){if(typeof win !== 'undefined'){win.y = o}},
-  zoom: function(o){if(typeof win !== 'undefined'){if(!isNaN(Math.log(options.zoom)/Math.log(1.2))){win.zoomLevel = Math.log(options.zoom)/Math.log(1.2)}}},
+  zoom: function(o){options.zoom = parseFloat(o) || 1; if(typeof win !== 'undefined'){if(!isNaN(Math.log(options.zoom)/Math.log(1.2))){win.zoomLevel = Math.log(options.zoom)/Math.log(1.2)}}},
   css: function(o){$('style').html(o)}
 }
 var keymap = {backspace:8,command:91,tab:9,clear:12,enter:13,shift:16,ctrl:17,alt:18,capslock:20,escape:27,esc:27,space:32,pageup:33,pgup:33,pagedown:34,pgdn:34,end:35,home:36,left:37,up:38,right:39,down:40,del:46,comma:188,f1:112,f2:113,f3:114,f4:115,f5:116,f6:117,f7:118,f8:119,f9:120,f10:121,f11:122,f12:123,',':188,'.':190,'/':191,'`':192,'-':189,'=':187,';':186,'[':219,'\\':220,']':221,'\'':222}
 var key = function(name){return keymap[String(name).toLowerCase()]||String(name).toUpperCase().charCodeAt(0)}
 var getCss = function() {
-  var file = document.createElement('input')
-  file.setAttribute('type', 'file')
-  file.setAttribute('accept', '.css')
-  file.onchange = function() {
+  var file = $('<input type="file" accept=".css">')
+  file.change(function() {
     var reader = new FileReader()
     reader.onloadend = function() {
       data = reader.result
       options.css = data
     }
-    reader.readAsText(this.files[0])
-  }
+    reader.readAsText(file[0].files[0])
+  })
+  file.click()
+}
+var getIcon = function(n) {
+  var file = $('<input type="file" accept="image/*">')
+  file.change(function() {
+    var reader = new FileReader()
+    if(file[0].files[0].path) {
+      splits[n].icon = file[0].files[0].path
+      $('.icon')[n].src = file[0].files[0].path
+    } else {
+      reader.onloadend = function() {
+        data = reader.result
+        splits[n].icon = data
+        $('.icon')[n].src = data
+        save()
+      }
+      reader.readAsDataURL(file[0].files[0])
+    }
+  })
   file.click()
 }
 var plotopt = {
@@ -149,6 +194,9 @@ var plotopt = {
   }
 }
 var updateStaticSegments = function() {
+  if(!options.graph) {
+    return
+  }
   v.data = []
   v.ticks = [0]
   if(splits.length > 1) {
@@ -177,7 +225,7 @@ var updateStaticSegments = function() {
       v.data.push([x, y])
     }
   }
-  if(!v.plot) {
+  if(!v.plot && options.graph) {
     v.plot = $.plot('#graph', [[0,0]], plotopt)
   }
   var opac = 1
@@ -227,7 +275,7 @@ var draw = function() {
   var opac = 1
   var color = 'rgba(0,0,0,0)'
   if(v.n==0) {
-    opac = v.time/splits[v.n].bestseg
+    opac = v.time/(splits[v.n].bestseg || splits[v.n].best)
     if(!v.inter) {
       opac = 1
     }
@@ -239,7 +287,7 @@ var draw = function() {
       color = v.segcolors[1]+opac+')'
     }
   } else {
-    opac = (v.time-splits[i-1].current)/splits[i].bestseg
+    opac = (v.time-splits[i-1].current)/(splits[i].bestseg || splits[i].best-splits[i-1].best)
     if(!v.inter) {
       opac = 1
     }
@@ -274,54 +322,6 @@ var draw = function() {
 }
 var editOptions = function() {
   if($('#options').is(':visible')) {
-    $('#options').hide()
-    $('#splits').show()
-    $('#titlerow').show()
-    if(options.graph) $('#graph').show()
-    if(options.toolbar) $('#bar').show()
-    return
-  }
-  var help = {
-    ontop: 'Always on top, boolean',
-    zoom: 'Zoom level, 0.1 .. 5',
-    precision: 'Number of decimals, 0 .. 3',
-    trim: 'Trim leading zeroes, boolean',
-    interval: 'Timer update interval, ms',
-    drawinterval: 'Graph update interval, ms',
-    autoadd: 'Automatically add new splits, boolean',
-    autosave: 'Automatically save personal best and best segments on reset',
-    offset: 'Timer start offset, ms',
-    splits: 'Number of empty splits to create by default',
-    graph: 'Show the graph, boolean',
-    toolbar: 'Show the toolbar, boolean',
-    global_split: 'Global hotkey: Start / Split',
-    global_stop: 'Global hotkey: Stop / Save times',
-    global_reset: 'Global hotkey: Reset / Clear (hold)',
-    global_pause: 'Global hotkey: Pause / Options',
-    global_undo: 'Global hotkey: Undo / Import / Export',
-    local_split: 'Local hotkey: Start / Split',
-    local_stop: 'Local hotkey: Stop / Save times',
-    local_reset: 'Local hotkey: Reset / Clear (hold)',
-    local_pause: 'Local hotkey: Pause / Options',
-    local_undo: 'Local hotkey: Undo / Import / Export'
-  }
-  $('#options').html('')
-  $('#options').append('<div class="help">Hover over a setting for help.</div><button class="saveoptions">Save settings</button>')
-  for(var i in help) {
-    $('#options').append('<div class="option"><span class="variable" title="'+help[i]+' (default: '+defaults[i]+')">'+i+':</span><span class="value" contenteditable="true" title="'+help[i]+' (default: '+defaults[i]+')" data-key="'+i+'">'+options[i]+'</span></div>')
-  }
-  $('#options').append('<button class="saveoptions">Save settings</button>')
-  $('#graph').hide()
-  $('#titlerow').hide()
-  $('#splits').hide()
-  $('#options').show()
-  if(typeof win !== 'undefined') {
-    win.height = parseInt(($('#timer').height()+$('#bar').height()+$('#options')[0].scrollHeight)*Math.pow(1.2, win.zoomLevel))
-    if(win.width < 300) {
-      win.width = 300
-    }
-  }
-  $('.saveoptions').click(function() {
     $('#options .value').each(function() {
       var key = $(this).data('key')
       var val = $(this).html()
@@ -346,7 +346,49 @@ var editOptions = function() {
     $('#titlerow').show()
     if(options.graph) $('#graph').show()
     if(options.toolbar) $('#bar').show()
-  })
+    return
+  }
+  var help = {
+    ontop: 'Always on top, boolean',
+    zoom: 'Zoom level, 0.1 .. 5',
+    precision: 'Number of decimals, 0 .. 3',
+    trim: 'Trim leading zeroes, boolean',
+    interval: 'Timer update interval, ms',
+    drawinterval: 'Graph update interval, ms',
+    autoadd: 'Automatically add new splits, boolean',
+    autosave: 'Automatically save personal best and best segments on reset',
+    offset: 'Timer start offset, ms',
+    splits: 'Number of empty splits to create by default',
+    graph: 'Show the graph, boolean',
+    toolbar: 'Show the toolbar, boolean',
+    iconsize: 'Split icon size, px',
+    global_split: 'Global hotkey: Start / Split',
+    global_stop: 'Global hotkey: Stop / Save times',
+    global_reset: 'Global hotkey: Reset / Clear (hold)',
+    global_pause: 'Global hotkey: Pause / Options',
+    global_undo: 'Global hotkey: Undo / Import / Export',
+    local_split: 'Local hotkey: Start / Split',
+    local_stop: 'Local hotkey: Stop / Save times',
+    local_reset: 'Local hotkey: Reset / Clear (hold)',
+    local_pause: 'Local hotkey: Pause / Options',
+    local_undo: 'Local hotkey: Undo / Import / Export'
+  }
+  $('#options').html('')
+  $('#options').append('<div class="help">Hover over a setting for help.</div>')
+  for(var i in help) {
+    $('#options').append('<div class="option"><span class="variable" title="'+help[i]+' (default: '+defaults[i]+')">'+i+':</span><span class="value" contenteditable="true" title="'+help[i]+' (default: '+defaults[i]+')" data-key="'+i+'">'+options[i]+'</span></div>')
+  }
+  $('#options').append('<div class="help">Click <i class="fa fa-fw fa-cog"></i> to save.</div>')
+  $('#graph').hide()
+  $('#titlerow').hide()
+  $('#splits').hide()
+  $('#options').show()
+  if(typeof win !== 'undefined') {
+    win.height = parseInt(($('#timer').height()+$('#bar').height()+$('#options')[0].scrollHeight)*Math.pow(1.2, win.zoomLevel))
+    if(win.width < 200) {
+      win.width = 200
+    }
+  }
 }
 var save = function() {
   localStorage.splits = JSON.stringify(splits)
@@ -386,7 +428,7 @@ var split = function() {
     pause()
     return
   } else if(v.state == RESET) {
-    v.start = new Date().getTime()-options.offset
+    v.start = new Date().getTime()-(parseInt(options.offset) || 0)
     v.n=0
     options.attempts++
     v.inter = setInterval(updateTime, options.interval)
@@ -410,7 +452,7 @@ var split = function() {
 var addSplit = function(add) {
   if(add) {
     var name = 'Split '+(splits.length+1)
-    splits[splits.length] = { name: name, current: 0, best: 0, seg: 0, bestseg: 0 }
+    splits[splits.length] = { name: name, current: 0, best: 0, seg: 0, bestseg: 0, icon: '' }
     appendSplit(name, 0, 0)
     return    
   }
@@ -424,7 +466,7 @@ var addSplit = function(add) {
   }
   var name = 'Split '+(1+v.n)
   if(splits.length == 0 || (splits.length <= v.n && options.autoadd && v.inter)) {
-    splits[v.n] = { name: name, current: split, best: 0, seg: seg, bestseg: 0 }
+    splits[v.n] = { name: name, current: split, best: 0, seg: seg, bestseg: 0, icon: '' }
     appendSplit(name, split, seg)
   } else if(splits[v.n]) {
     splits[v.n].current = split
@@ -565,12 +607,13 @@ var ttime = function(time) {
   var s = (time / 1000) % 60
   var m = Math.floor((time / (1000 * 60)) % 60)
   var h = Math.floor((time / (1000 * 60 * 60)) % 24)
-  var newTime = h+':'+m+':'+(s.toFixed(options.precision))
+  var newTime = h+':'+m+':'+(options.precision?s.toFixed(options.precision):Math.floor(s))
   if(options.trim) {
     newTime = newTime.replace(/^([0:]*(?!\.))/,'')
   }
   newTime = newTime.replace(/(:(?=\d(?!\d)))/g,':0')
-  newTime = newTime.replace('.','<span>.')+'</span>'
+  if(options.precision) { newTime = newTime.replace('.','<span>.')+'</span>' }
+  if(newTime == '') { newTime = '0' }
   return newTime
 }
 var centerSplit = function() {
@@ -604,7 +647,7 @@ var updateTime = function() {
   } else if(v.state == STOPPED) {
     v.time = v.stop-v.start
   } else if(v.state == RESET) {
-    v.time = options.offset
+    v.time = parseInt(options.offset) || 0
   } else if(v.state == PAUSED) {
     v.time = v.pausestart-v.start
   }
@@ -631,10 +674,11 @@ var drawTime = function() {
 }
 var appendSplit = function(myname, mytime, myseg) {
   var id = $('.split').length
-  $('#splits').append('<div class="split" data-id="'+id+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="seg" contenteditable="true">'+ttime(myseg)+'</span><span class="time" contenteditable="true">'+ttime(mytime)+'</span></div>')
+  $('#splits').append('<div class="split" data-id="'+id+'"><img class="icon" src="'+(splits[id].icon || options.icon || '//:0')+'"><span class="name" contenteditable="true">'+myname+'</span><span class="diff"></span><span class="seg" contenteditable="true">'+ttime(myseg)+'</span><span class="time" contenteditable="true">'+ttime(mytime)+'</span></div>')
   $('#buttonload').hide()
   $('#buttonsave').show()
   v.diff = $('.diff:nth('+v.n+')')
+  optionHandler['iconsize']()
 }
 var die = function() {
   localStorage.clear()
@@ -651,11 +695,13 @@ var importExport = function() {
   }
 }
 var exportWsplit = function() {
-  var data = 'Title='+options.title+'\nAttempts='+options.attempts+'\nOffset=0\nSize=200,25\n'
+  var data = 'Title='+options.title+'\r\nAttempts='+options.attempts+'\r\nOffset=0\r\nSize=200,25\r\n'
+  var icons = []
   for(var i in splits) {
-    data += splits[i].name+',0,'+rnd(splits[i].best/1000)+','+rnd(splits[i].bestseg/1000)+'\n'
+    data += splits[i].name+',0,'+rnd(splits[i].best/1000)+','+rnd(splits[i].bestseg/1000)+'\r\n'
+    icons.push('"'+splits[i].icon+'"')
   }
-  data += 'Icons='+Array(splits.length).join('"",')+'""'
+  data += 'Icons='+icons.join(',')
   if(typeof fs !== 'undefined') {
     var file = $('<input type="file" accept=".wsplit" nwsaveas="'+options.title+'">')
     file.change(function() {
@@ -677,8 +723,9 @@ var importWsplit = function() {
     reader.onloadend = function() {
       var metareg = false
       var reg = false
+      var iconreg = /"([^"]*)"/gm
       if(file[0].files[0].name.match(/\.wsplit$/)) {
-        metareg = /Title=(.*)$[^]*?(Attempts=(.*?)$)/gm
+        metareg = /Title=(.*)$[^]*?Attempts=(.*?)$[^]*?Icons=(.*?)$/gm
         reg = /^(.*),[\d\.]*,([\d\.]*),([\d\.]*)$/gm
       } else {
         return
@@ -686,7 +733,7 @@ var importWsplit = function() {
       var meta = metareg.exec(reader.result)
       options.title = meta[1]
       $('#title').html(options.title)
-      options.attempts = parseInt(meta[3]) || 0
+      options.attempts = parseInt(meta[2]) || 0
       $('#attempts').html(options.attempts)
       splits = []
       $('#splits').html('')
@@ -694,7 +741,8 @@ var importWsplit = function() {
         var newtime = 1000*found[2]
         var newseg = 1000*found[3]
         var newname = String(found[1])
-        splits.push({name: newname, current: 1*newtime, best: 1*newtime, seg: 1*newseg, bestseg: 1*newseg})
+        var newicon = iconreg.exec(meta[3])[1] || ''
+        splits.push({name: newname, current: 1*newtime, best: 1*newtime, seg: 1*newseg, bestseg: 1*newseg, icon: newicon})
         appendSplit(newname, newtime, newseg)
       }
       save()
@@ -716,6 +764,7 @@ var variableHandler = {
     if(v.state == PAUSED) {
       $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('paused')
+      $('[contenteditable]').blur()
     } else if(v.state == RUNNING) {
       if(!v.inter) {
         v.inter = setInterval(updateTime,options.interval)
@@ -884,6 +933,37 @@ var buttonHandler = {
   buttontimes: function(){ stop() },
   buttonsplit: function(){ split() }
 }
+var gotoEnd = function(el) {
+    var range,selection;
+    if(document.createRange) {
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(el);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+    } else if(document.selection) { 
+        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+        range.moveToElementText(el);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        range.select();//Select the range (make it the visible selection
+    }
+}
+var getMs = function(time) {
+  time = time.replace(',','.')
+  if(!time.match(/:/)) {
+    return 1000*(parseFloat(time) || 0)
+  }
+  time = time.replace(/[^\d.:]*/gm,'')
+  var ms = 0
+  time = time.split(':')
+  time.reverse()
+  var multi = [1000, 60*1000, 60*60*1000]
+  for(var i = time.length-1; i >= 0; i--) {
+    ms += multi[i]*time[i]
+  }
+  return ms
+}
 $(function() {
   v.timer = $('#timer')
   v.title = $('#title')
@@ -903,6 +983,24 @@ $(function() {
   })
   $(window).keydown(function(e) {
     if($(e.target).attr('contenteditable') == 'true') {
+      if(e.which == 13) {
+        e.preventDefault()
+        $('#splits').click()
+      } else if(e.which == 40) {
+        e.preventDefault()
+        var el = $('.split:nth('+((1*$(e.target).parent().attr('data-id')+1)%splits.length)+') .'+e.target.classList[0])
+        if(el) {
+          el.focus()
+          gotoEnd(el[0])
+        }
+      } else if(e.which == 38) {
+        e.preventDefault()
+        var el = $('.split:nth('+(1*$(e.target).parent().attr('data-id')-1)+') .'+e.target.classList[0])
+        if(el) {
+          el.focus()
+          gotoEnd(el[0])
+        }
+      }
       return
     }
     if(e.which == key(options.local_split)) {
@@ -922,24 +1020,22 @@ $(function() {
       undo()
     }
   })
-  $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
+  $('#timer').html(options.offset<0?'-':'')+ttime(options.offset)
   for(var i in splits) {
     appendSplit(splits[i].name, splits[i].best, splits[i].bestseg)
   }
-  $('#container').on('click', '[contenteditable="true"]', function(e){
+  $('#container').on('click, focus', '[contenteditable="true"]', function(e){
     e.preventDefault()
     e.stopPropagation()
-    document.execCommand('selectAll', false, null)
+    gotoEnd(e.target)
+  })
+  $('#splits').on('click', '.icon', function() {
+    getIcon($(this).parents('.split').attr('data-id'))
   })
   $('#splits').on('click', function(e){
-    if($(e.target).is('.split, #splits')) {
-      $('[contenteditable="true"]').blur()
+    if($(e.target).attr('contenteditable') != 'true') {
+      $('[contenteditable]').blur()
     }
-  })
-  $('#container').on('focus', '.time', function(e) {
-    var id = $(this).parents('.split').attr('data-id')
-    var val = rnd(splits[id].best/1000)
-    $(this).html(val)
   })
   $('#container').on('blur', '.time', function(e) {
     if(!e.isSimulated) {
@@ -949,15 +1045,12 @@ $(function() {
     if(!splits[id]) {
       return
     }
-    var val = 1000*$(this).html()
+    var val = getMs($(this).text())
     splits[id].best = val
+    splits[id].current = val
     $(this).html(ttime(val))
     save()
-  })
-  $('#container').on('focus', '.seg', function(e) {
-    var id = $(this).parents('.split').attr('data-id')
-    var val = rnd(splits[id].bestseg/1000)
-    $(this).html(val)
+    $('#splits').click()
   })
   $('#container').on('blur', '.seg', function(e) {
     if(!e.isSimulated) {
@@ -967,10 +1060,12 @@ $(function() {
     if(!splits[id]) {
       return
     }
-    var val = 1000*$(this).html()
+    var val = getMs($(this).text())
     splits[id].bestseg = val
+    splits[id].seg = val
     $(this).html(ttime(val))
     save()
+    $('#splits').click()
   })
   $('#container').on('blur', '.name', function(e) {
     var id = $(this).parents('.split').attr('data-id')
@@ -993,6 +1088,7 @@ $(function() {
       splits[id].name = val
     }
     save()
+    $('#timer').click()
   })
   if(typeof win !== 'undefined') {
     $(window).bind('mousewheel', function(e){
@@ -1019,14 +1115,6 @@ $(function() {
   $('#attempts').blur(function() {
     options.attempts = parseInt($('#attempts').html()) || 0
     save()
-  })
-  $('#splits').dblclick(function(e) {
-    e.preventDefault()
-    if(splits.length == 0) {
-      importWsplit()
-    } else {
-      exportWsplit()
-    }
   })
   $('#bar').on('click', '.button', function(e){
     if(buttonHandler[this.id]) {
