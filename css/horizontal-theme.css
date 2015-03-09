@@ -1,10 +1,15 @@
 /* Basic horizontal layout */
 #container { flex-direction: row }
 #attempts { display: none; }
-#timer { width: 260px; font-size: 56px; line-height: 50px; height: auto; }
+#timer { width: 260px; font-size: 34px; line-height: 32px; height: auto; padding-top: 3px; }
 #splits { display: flex; flex-direction: row; }
-.split { min-width: 200px; flex-direction: column; align-items: inherit; }
-.name { display: block; min-width: 100%; overflow: visible; position: absolute; }
-.seg, .time, .diff { width: auto; }
+.split { min-width: 200px; flex-direction: column; align-items: inherit; position: relative;}
+.icon { position: absolute; }
+.name { display: block; width: auto; overflow: visible; position: absolute; margin-left: 32px; }
+.time, .diff, .seg { flex: none; }
+.diff { position: absolute; left: 32px; bottom: 0; }
+.seg { position: absolute; right: 0; top: 0; }
+.time { position: absolute; right: 0; bottom: 0; }
 .diff { clear: left; float: left }
-#titlerow, #bar, #graph { display: none }
+.split.current { background: rgba(70,100,255,0.4);}
+#titlerow, #bar, #graph { display: none; width: 0; height: 0; visibility: hidden; }
