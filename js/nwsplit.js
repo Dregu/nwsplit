@@ -31,14 +31,14 @@ var defaults = {
   local_reset: 'F10',
   local_pause: 'F9',
   local_undo: 'F8',
-  width: 300,
-  height: 500,
+  width: 320,
+  height: 720,
   x: 300,
   y: 300,
   zoom: 1,
   css: ''
 }
-var RESET = 0, RUNNING = 1, PAUSED = 2, STOPPED = 3;
+var RESET = 0, RUNNING = 1, PAUSED = 2, STOPPED = 3
 var v = {
   inter: 0,
   drawinter: 0,
@@ -55,27 +55,26 @@ var v = {
 }
 var custom = null
 function clone(obj) {
-    if (null == obj || "object" != typeof obj) return obj;
+    if (null == obj || "object" != typeof obj) return obj
     if (obj instanceof Date) {
-        var copy = new Date();
-        copy.setTime(obj.getTime());
-        return copy;
+        var copy = new Date()
+        copy.setTime(obj.getTime())
+        return copy
     }
     if (obj instanceof Array) {
-        var copy = [];
+        var copy = []
         for (var i = 0, len = obj.length; i < len; i++) {
-            copy[i] = clone(obj[i]);
+            copy[i] = clone(obj[i])
         }
-        return copy;
+        return copy
     }
     if (obj instanceof Object) {
-        var copy = {};
+        var copy = {}
         for (var attr in obj) {
-            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr])
         }
-        return copy;
+        return copy
     }
-    throw new Error("Unable to copy obj! Its type isn't supported.");
 }
 var parseBool = function(bool) {
   if(bool == 'false' || bool == 0 || bool == '0') {
@@ -97,7 +96,7 @@ var optionHandler = {
   },
   offset: function(o){
     options.offset = parseInt(options.offset) || 0
-    if(v.state == RESET){ $('#timer').html(ttime(options.offset)) }
+    if(v.state == RESET || v.state == STOPPED){ $('#timer').html(ttime(options.offset)) }
   },
   splits: function(o){options.splits = parseInt(options.splits) || 0},
   interval: function(o){options.interval = parseInt(options.interval) || 100},
@@ -106,7 +105,7 @@ var optionHandler = {
   autosave: function(o){ options.autosave = parseBool(o) },
   trim: function(o){
     options.trim = parseBool(o)
-    if(v.state == RESET){ $('#timer').html(ttime(options.offset)) }
+    if(v.state == RESET || v.state == STOPPED){ $('#timer').html(ttime(options.offset)) }
   },
   title: function(o){if(v.title) v.title.html(o)},
   attempts: function(o){
@@ -116,7 +115,7 @@ var optionHandler = {
   graph: function(o){options.graph = parseBool(o); if(options.graph){$('#graph').slideDown(function(){if(v.plot){v.plot.resize()};v.drawinter = setInterval(draw,options.drawinterval)})} else {clearInterval(v.drawinter);v.drawinter = 0;$('#graph').slideUp()}},
   toolbar: function(o){options.toolbar = parseBool(o); if(typeof win === 'undefined') return;if(options.toolbar){$('#bar').slideDown()} else {$('#bar').slideUp()}},
   iconsize: function(o){
-    $('.icon').height(options.iconsize).width(options.iconsize);
+    $('.icon').height(options.iconsize).width(options.iconsize)
     if(options.iconsize > 16) {
       $('.name,.seg,.time').css('line-height', options.iconsize+'px').css('height', options.iconsize+'px')
     } else {
@@ -384,7 +383,10 @@ var editOptions = function() {
   $('#splits').hide()
   $('#options').show()
   if(typeof win !== 'undefined') {
-    win.height = parseInt(($('#timer').height()+$('#bar').height()+$('#options')[0].scrollHeight)*Math.pow(1.2, win.zoomLevel))
+    var optheight = parseInt(($('#timer').height()+$('#bar').height()+$('#options')[0].scrollHeight)*Math.pow(1.2, win.zoomLevel))
+    if(win.height < optheight) {
+      //win.height = optheight
+    }
     if(win.width < 200) {
       win.width = 200
     }
@@ -449,14 +451,26 @@ var split = function() {
   centerSplit()
   save()
 }
+var splitHandler = function(c) {
+  for(var i in c) {
+    for(var s in splits) {
+      if(splits[s] == c[i].object){
+        $('.split:nth('+s+') .name').html(splits[s].name)
+        $('.split:nth('+s+') .time').html(ttime(splits[s].best))
+        $('.split:nth('+s+') .seg').html(ttime(splits[s].bestseg))
+      }
+    }
+  }
+}
 var addSplit = function(add) {
   if(add) {
     var name = 'Split '+(splits.length+1)
-    splits[splits.length] = { name: name, current: 0, best: 0, seg: 0, bestseg: 0, icon: '' }
+    splits.push({ name: name, current: 0, best: 0, seg: 0, bestseg: 0, icon: '' })
+    Object.observe(splits[splits.length-1], splitHandler)
     appendSplit(name, 0, 0)
     return    
   }
-  var split = (v.state == STOPPED ? v.stop-v.start : new Date().getTime()-v.start);
+  var split = (v.state == STOPPED ? v.stop-v.start : new Date().getTime()-v.start)
   if(v.start == 0) {
     split = 0
   }
@@ -466,7 +480,8 @@ var addSplit = function(add) {
   }
   var name = 'Split '+(1+v.n)
   if(splits.length == 0 || (splits.length <= v.n && options.autoadd && v.inter)) {
-    splits[v.n] = { name: name, current: split, best: 0, seg: seg, bestseg: 0, icon: '' }
+    splits.push({ name: name, current: split, best: 0, seg: seg, bestseg: 0, icon: '' })
+    Object.observe(splits[splits.length-1], splitHandler)
     appendSplit(name, split, seg)
   } else if(splits[v.n]) {
     splits[v.n].current = split
@@ -597,10 +612,6 @@ var pause = function() {
   }
   updateTime()
   save()
-}
-var pad = function(num, size) {
-  var s = "0000" + num;
-  return s.substr(s.length - size);
 }
 var ttime = function(time) {
   time = Math.abs(time)
@@ -743,6 +754,7 @@ var importWsplit = function() {
         var newname = String(found[1])
         var newicon = iconreg.exec(meta[3])[1] || ''
         splits.push({name: newname, current: 1*newtime, best: 1*newtime, seg: 1*newseg, bestseg: 1*newseg, icon: newicon})
+        Object.observe(splits[splits.length-1], splitHandler)
         appendSplit(newname, newtime, newseg)
       }
       save()
@@ -764,7 +776,7 @@ var variableHandler = {
     if(v.state == PAUSED) {
       $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('paused')
-      $('[contenteditable]').blur()
+      v.timer.html((options.offset<0?'-':'')+ttime(v.time))
     } else if(v.state == RUNNING) {
       if(!v.inter) {
         v.inter = setInterval(updateTime,options.interval)
@@ -779,12 +791,13 @@ var variableHandler = {
     } else if(v.state == STOPPED) {
       $('.split:nth('+v.n+')').addClass('current')
       v.timer.removeClass().addClass('stopped')
+      v.timer.html((options.offset<0?'-':'')+ttime(v.time))
       $('#buttonadd, #buttonstop, #buttonpause, #buttonsave, #buttonload').hide()
       $('#buttontimes, #buttonoptions').show()
     } else if(v.state == RESET) {
       v.timer.removeClass()
-      $('#timer').html((options.offset<0?'-':'')+ttime(options.offset))
-      $('#timer').removeClass()
+      v.timer.html((options.offset<0?'-':'')+ttime(options.offset))
+      v.timer.removeClass()
       $('.diff').removeClass('better worse gold')
       $('.diff').html('')
       $('.split').removeClass('current')
@@ -821,6 +834,9 @@ if(splits.length == 0 && options.splits > 0) {
   for(var i = 0; i < options.splits; i++) {
     addSplit(true)
   }
+}
+for(var i in splits) {
+  Object.observe(splits[i], splitHandler)
 }
 if(typeof process !== 'undefined') {
   win.setAlwaysOnTop(options.ontop)
@@ -934,19 +950,19 @@ var buttonHandler = {
   buttonsplit: function(){ split() }
 }
 var gotoEnd = function(el) {
-    var range,selection;
+    var range,selection
     if(document.createRange) {
-        range = document.createRange();//Create a range (a range is a like the selection but invisible)
-        range.selectNodeContents(el);//Select the entire contents of the element with the range
-        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-        selection = window.getSelection();//get the selection object (allows you to change selection)
-        selection.removeAllRanges();//remove any selections already made
-        selection.addRange(range);//make the range you have just created the visible selection
+        range = document.createRange()
+        range.selectNodeContents(el)
+        range.collapse(false)
+        selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
     } else if(document.selection) { 
-        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
-        range.moveToElementText(el);//Select the entire contents of the element with the range
-        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-        range.select();//Select the range (make it the visible selection
+        range = document.body.createTextRange()
+        range.moveToElementText(el)
+        range.collapse(false)
+        range.select()
     }
 }
 var getMs = function(time) {
@@ -1102,7 +1118,7 @@ $(function() {
         e.preventDefault()
         options.zoom -= 0.1
       }
-    });
+    })
   }
   $(window).scroll(function() {
     $(window).scrollTop(0)

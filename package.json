@@ -10,8 +10,8 @@
     "transparent": true,
     "position": "center",
     "always-on-top": true,
-    "width": 300,
-    "height": 500,
+    "width": 320,
+    "height": 720,
     "min_width": 100,
     "min_height": 20,
     "icon": "img/goldsplit.png"
