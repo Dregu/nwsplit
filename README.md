@@ -1,4 +1,4 @@
-# nwsplit
+# nwsplit (pronounced "envy")
 ##### Cross platform speedrunning splitter/timer made for [nw.js](http://github.com/nwjs/nw.js) that runs on windows, linux and mac, and also in the browser and mobile devices.
 
 ##### You can test the basic functions in the [browser version](http://dregu.github.io/nwsplit/) or download [nwsplit.nw](http://dregu.github.io/nwsplit/nwsplit.nw) and [nw.js](http://nwjs.io) to run it on your PC with extra features and eyecandy.
