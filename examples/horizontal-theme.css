@@ -1,15 +1,12 @@
 /* Basic horizontal layout */
 #container { flex-direction: row }
-#attempts { display: none; }
-#timer { width: 260px; font-size: 34px; line-height: 32px; height: auto; padding-top: 3px; }
-#splits { display: flex; flex-direction: row; }
+#timer { order: 1; width: 200px; font-size: 34px; line-height: 32px; height: auto; padding-top: 3px; border: 0;}
+#splits { order: 2; display: flex; flex-direction: row; }
 .split { min-width: 200px; flex-direction: column; align-items: inherit; position: relative;}
-.icon { position: absolute; }
-.name { display: block; width: auto; overflow: visible; position: absolute; margin-left: 32px; }
-.time, .diff, .seg { flex: none; }
-.diff { position: absolute; left: 32px; bottom: 0; }
+.name { display: block; width: auto; overflow: visible; position: absolute; left: 34px; top: 0; }
+.name, .time, .diff, .seg { flex: none; width: 50%; line-height: 20px!important; height: 20px!important; }
+.diff { position: absolute; bottom: 0; }
 .seg { position: absolute; right: 0; top: 0; }
-.time { position: absolute; right: 0; bottom: 0; }
-.diff { clear: left; float: left }
-.split.current { background: rgba(70,100,255,0.4);}
-#titlerow, #bar, #graph { display: none; width: 0; height: 0; visibility: hidden; }
+.time { position: absolute; right: 0; bottom: 0;}
+.diff { clear: left; float: left; margin-left: 32px; text-align: left; }
+#details, #titlerow, #bar, #graph { display: none; width: 0; height: 0; visibility: hidden; }

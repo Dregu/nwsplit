@@ -21,14 +21,13 @@ body {
 }
 #timer {
   padding-right: 10px;
-  order: 1;
+  order: 0;
   -webkit-app-region: drag;
   flex-shrink: 0;
   color: white;
   text-align: right;
   font-size: 60px;
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222222), to(#161616), color-stop(.9,#0C0C0C));
-  border-bottom: 1px solid rgba(128,128,128,0.05);
   text-shadow: 2px 2px 5px rgba(0,0,0,1);
 }
 #timer * {
@@ -54,18 +53,25 @@ body {
 #timer span, .diff span, .seg span, .time span {
   font-size: .7em;
 }
+#details {
+  order: 3;
+  font-size: .7em;
+  padding: 2px;
+  text-align: center;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
 #titlerow {
   flex-shrink: 0;
-  order: 2;
+  order: 1;
 }
 #title {
-  text-align: left;
+  text-align: center;
   padding: 2px;
-  margin-right: 30px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: skyblue;
+  color: orange;
 }
 #attempts {
   float: right;
@@ -73,13 +79,15 @@ body {
   color: #999;
   min-width: 25px;
   text-align: right;
+  font-size: .7em;
+  margin-left: -100px;
 }
 #splits {
-  order: 3;
+  order: 2;
   flex-grow: 1;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow: auto;
   white-space: nowrap;
 }
 .split {
@@ -145,9 +153,9 @@ body {
   padding-right: 2px;
 }
 #graph {
-  order: 5;
+  order: 4;
   flex-shrink: 0;
-  height: 200px;
+  height: 100px;
   width: 100%;
   border-top: 1px solid #222;
   overflow: hidden;
@@ -181,7 +189,7 @@ body {
   display: none;
 }
 #options {
-  order: 9;
+  order: 5;
   flex-grow: 0;
   overflow: auto;
   white-space: nowrap;
