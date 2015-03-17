@@ -175,8 +175,8 @@ var getIcon = function(n) {
 var plotopt = {
   colors: ['#eee'],
   series: {
-    lines: { show: true, lineWidth: 1 },
-    points: { show: true, fill: false, radius: 3 },
+    lines: { show: true, lineWidth: 2 },
+    points: { show: true, fill: true, fillColor: '#000', radius: 3 },
     shadowSize: 0
   },
   legend: { show: false },
@@ -382,15 +382,15 @@ var editOptions = function() {
   $('#titlerow').hide()
   $('#splits').hide()
   $('#options').show()
-  if(typeof win !== 'undefined') {
+  /*if(typeof win !== 'undefined') {
     var optheight = parseInt(($('#timer').height()+$('#bar').height()+$('#options')[0].scrollHeight)*Math.pow(1.2, win.zoomLevel))
     if(win.height < optheight) {
-      //win.height = optheight
+      win.height = optheight
     }
     if(win.width < 200) {
       win.width = 200
     }
-  }
+  }*/
 }
 var save = function() {
   localStorage.splits = JSON.stringify(splits)
@@ -452,15 +452,18 @@ var split = function() {
   save()
 }
 var splitHandler = function(c) {
-  for(var i in c) {
-    for(var s in splits) {
+  var sumofbest = 0;
+  for(var s in splits) {
+    for(var i in c) {
       if(splits[s] == c[i].object){
         $('.split:nth('+s+') .name').html(splits[s].name)
         $('.split:nth('+s+') .time').html(ttime(splits[s].best))
         $('.split:nth('+s+') .seg').html(ttime(splits[s].bestseg))
       }
     }
+    sumofbest += splits[s].bestseg
   }
+  $('#details').html('Sum of best segments: '+ttime(sumofbest))
 }
 var addSplit = function(add) {
   if(add) {
@@ -468,6 +471,7 @@ var addSplit = function(add) {
     splits.push({ name: name, current: 0, best: 0, seg: 0, bestseg: 0, icon: '' })
     Object.observe(splits[splits.length-1], splitHandler)
     appendSplit(name, 0, 0)
+    splitHandler()
     return    
   }
   var split = (v.state == STOPPED ? v.stop-v.start : new Date().getTime()-v.start)
@@ -494,6 +498,7 @@ var addSplit = function(add) {
     draw()
   }
   updateStaticSegments()
+  splitHandler()
 }
 var saveSplits = function(all) {
   var old = clone(splits)
@@ -757,6 +762,7 @@ var importWsplit = function() {
         Object.observe(splits[splits.length-1], splitHandler)
         appendSplit(newname, newtime, newseg)
       }
+      splitHandler()
       save()
     }
     reader.readAsText(this.files[0])
@@ -999,7 +1005,7 @@ $(function() {
   })
   $(window).keydown(function(e) {
     if($(e.target).attr('contenteditable') == 'true') {
-      if(e.which == 13) {
+      if(e.which == 13 && e.target.id != 'title') {
         e.preventDefault()
         $('#splits').click()
       } else if(e.which == 40) {
@@ -1140,6 +1146,7 @@ $(function() {
   window.ondragover = function(e) { e.preventDefault(); return false }
   window.ondrop = function(e){ if(e.target.id != 'file') { e.preventDefault(); return false }}
   variableHandler['state']()
+  splitHandler()
   Object.observe(v, function(c) {
     for(var i in c) {
       if(variableHandler[c[i].name]) {
