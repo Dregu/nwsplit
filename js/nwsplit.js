@@ -947,7 +947,8 @@ var buttonHandler = {
   buttonadd: function(){ stop() },
   buttonstop: function(){ stop() },
   buttontimes: function(){ stop() },
-  buttonsplit: function(){ split() }
+  buttonsplit: function(){ split() },
+  buttonundo: function(){ undo() }
 }
 var gotoEnd = function(el) {
     var range,selection
